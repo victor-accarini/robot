@@ -160,7 +160,7 @@
 #define	trisMtrLeftEnClr	TRISDCLR
 #define	prtMtrLeftEnSet		PORTDSET
 #define	prtMtrLeftEnClr		PORTDCLR
-#define	bnMtrLeftEn			1
+#define	bnMtrLeftEn		1
 
 #define	trisMtrLeftDirSet	TRISDSET
 #define	trisMtrLeftDirClr	TRISDCLR

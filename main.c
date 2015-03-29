@@ -32,7 +32,7 @@
 #include <math.h>
 #include "stdtypes.h"
 #include "config.h"
-#include "MtrCtrl.h"
+#include "motor.h"
 #include "spi.h"
 #include "util.h"
 
@@ -151,7 +151,7 @@ float error2v[1000], error3v[1000];
 int errorcount2 = 0, errorcount3 = 0;
 int Kp = 100, Ki = 50, Kd = 25, Kpslow = 50, Kislow = 25, Kdslow = 12, Kpsuperslow = 18, Kisuperslow = 10, Kdsuperslow = 5;
 //Desired times between interrupts
-int DesiredTime2, DesiredTime3;
+//int DesiredTime2, DesiredTime3;
 //Stopped motors check variables
 int LastInt2, LastInt3, Timer5LastInt2, Timer5LastInt3, LastIntCount2=0, LastIntCount3=0;
 
@@ -197,56 +197,8 @@ void    ErrorCalcPID3();
 void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
 {
 
-        /* Debounce board buttons
-	// Read the raw state of the button pins.
-	btnBtn1.stCur = ( prtBtn1 & ( 1 << bnBtn1 ) ) ? stPressed : stReleased;
-	btnBtn2.stCur = ( prtBtn2 & ( 1 << bnBtn2 ) ) ? stPressed : stReleased;
-
-	// Update state counts.
-	btnBtn1.cst = ( btnBtn1.stCur == btnBtn1.stPrev ) ? btnBtn1.cst + 1 : 0;
-	btnBtn2.cst = ( btnBtn2.stCur == btnBtn2.stPrev ) ? btnBtn2.cst + 1 : 0;
-
-	// Save the current state.
-	btnBtn1.stPrev = btnBtn1.stCur;
-	btnBtn2.stPrev = btnBtn2.stCur;
-
-	// Update the state of button 1 if necessary.
-	if ( cstMaxCnt == btnBtn1.cst ) {
-		btnBtn1.stBtn = btnBtn1.stCur;
-		btnBtn1.cst = 0;
-	}
-
-	// Update the state of button 2 if necessary.
-	if ( cstMaxCnt == btnBtn2.cst ) {
-		btnBtn2.stBtn = btnBtn2.stCur;
-		btnBtn2.cst = 0;
-	}
-        */
-        /*if (DesiredTime2 >= 20 && DesiredTime2 <= 110)
-        {
-            if (LastInt2 == Timer5LastInt2)
-            {
-                LastIntCount2++;
-            }
-            if (LastIntCount2 > 1000)
-            {
-                BaseC2 = 50;
-            }
-        }
-        if (DesiredTime3 >= 20 && DesiredTime3 <= 110)
-        {
-            if (LastInt3 == Timer5LastInt3)
-            {
-                LastIntCount3++;
-            }
-            if (LastIntCount3 > 1000)
-            {
-                BaseC3 = 50;
-            }
-        }*/
-
         // PID for Left Wheel
-        if (DesiredTime2 <= 20 || DesiredTime2 > 110){
+        if (DesiredTimeLeft < 20 || DesiredTimeLeft > 110){
             error2 = 0;
             lasterror2 = 0;
             errorcount2 = 0;
@@ -258,12 +210,11 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
             BaseC2 = 0;
             C2 = 0;
         }
-        else if (DesiredTime2 <= 50) //When its Fast
+        else //if (DesiredTimeLeft <= 50) //When its Fast
         {
             if (C2Counter++ > 299)
             {
-                //Check if wheel is stopped
-                //CheckStoppedWheel2(100);
+                
                 //Calculate Error
                 ErrorCalcPID2();
                 // Calculate new speed
@@ -286,7 +237,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                     errorcount2 = 0;
             }
         }
-        else if (DesiredTime2 > 50 && DesiredTime2 < 95)//When its slow
+        /*else if (DesiredTime2 > 50 && DesiredTime2 < 95)//When its slow
         {
             if (C2Counter++ > 99)
             {
@@ -341,10 +292,10 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                 if (errorcount2 > 299)
                     errorcount2 = 0;
                 }
-        }
+        }*/
         
         // PID for Right Wheel
-        if (DesiredTime3 <= 20 || DesiredTime3 > 110){
+        if (DesiredTimeRight < 20 || DesiredTimeRight > 110){
             error3 = 0;
             lasterror3 = 0;
             errorcount3 = 0;
@@ -356,12 +307,10 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
             BaseC3 = 0;
             C3 = 0;
         }
-        else if (DesiredTime3 <= 50) //When its Fast
+        else //if (DesiredTime3 <= 50) //When its Fast
         {
             if (C3Counter++ > 299)
             {
-                //Check if wheel is stopped
-                //CheckStoppedWheel3(100);
                 //Calculate Error
                 ErrorCalcPID3();
                 // Calculate new speed
@@ -384,7 +333,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                     errorcount3 = 0;
                }
         }
-        else if (DesiredTime3 > 50 && DesiredTime3 < 95) //When its slow
+        /*else if (DesiredTime3 > 50 && DesiredTime3 < 95) //When its slow
         {
             if (C3Counter++ > 99)
             {
@@ -439,7 +388,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                 if (errorcount3 > 299)
                     errorcount3 = 0;
                 }
-        }
+        }*/
         Timer5LastInt2 = LastInt2;
         Timer5LastInt3 = LastInt3;
         TimerCounter++;
@@ -617,101 +566,9 @@ int main(void)
 	AppInit();
         INTEnableInterrupts();
         state = Start;
-        while (1){
-            INTDisableInterrupts();
-            LeftSensor = LeftSensorFormula(ADC1avg);
-            RightSensor = RightSensorFormula(ADC0avg);
 
-            n2 = sprintf(str2, "Left: %7.2f", LeftSensor);//Left distance sensor
-            n3 = sprintf(str3, "Right: %6.2f ", RightSensor);//Right distance sensor
-
-            SpiEnable();
-            SpiPutBuff(szCursorPosC2, 6);//First counter
-            DelayMs(4);
-            SpiPutBuff(str2, n2);
-            DelayMs(4);
-            SpiPutBuff(szCursorPosC3, 6);//First counter
-            DelayMs(4);
-            SpiPutBuff(str3, n3);
-            SpiDisable();
-            INTEnableInterrupts();
-
-            switch (state) {
-                case Start:
-
-                    if ( (LeftSensor > 5 && LeftSensor < 10) || (RightSensor > 5 && RightSensor < 10) )
-                    {
-                        nextstate = Backward;
-                        state = MotorChange;
-                    }
-                    else if ( (LeftSensor > 20) || (RightSensor > 20) )
-                    {
-                        nextstate = Forward;
-                        state = MotorChange;
-                    }
-                    break;
-                case Forward:
-
-                    if ( (LeftSensor > 10 && LeftSensor < 20) || (RightSensor > 10 && RightSensor < 20) )
-                    {
-                        nextstate = Start;
-                        state = MotorChange;
-                    }
-                    else if ( (LeftSensor > 5 && LeftSensor < 10) || (RightSensor > 5 && RightSensor < 10) )
-                    {
-                        nextstate = Backward;
-                        state = MotorChange;
-                    }
-                    break;
-                case Backward:
-
-                     if ( (LeftSensor > 10 && LeftSensor < 20) || (RightSensor > 10 && RightSensor < 20) )
-                    {
-                        nextstate = Start;
-                        state = MotorChange;
-                    }
-                    else if ( (LeftSensor > 20) || (RightSensor > 20) )
-                    {
-                        nextstate = Forward;
-                        state = MotorChange;
-                    }
-                    break;
-
-                case MotorChange:
-                    
-                    if (nextstate == Backward)
-                    {
-                        DesiredTime2 = 0;
-                        DesiredTime3 = 0;
-                        Motor_Stop();
-                        Motor_Backward();
-                        DesiredTime2 = 40;
-                        DesiredTime3 = 40;
-                    }
-                    else if (nextstate == Forward)
-                    {
-                        DesiredTime2 = 0;
-                        DesiredTime3 = 0;
-                        Motor_Stop();
-                        Motor_Forward();
-                        DesiredTime2 = 40;
-                        DesiredTime3 = 40;
-
-                    }
-                    else
-                    {
-                        DesiredTime2 = 0;
-                        DesiredTime3 = 0;
-                    }
-                    state = nextstate;
-                    break;
-            }
-
-       /* MtrCtrlFwd();
-        UpdateMotors();
-        DesiredTime2 = 60;
-        DesiredTime3 = 60;
-
+        
+        
         INTDisableInterrupts();
 	//write to PmodCLS
         SpiEnable();
@@ -747,7 +604,15 @@ int main(void)
                 SpiDisable();
 
 		INTEnableInterrupts();
-
+                Motors_Forward();
+                //Motor_Left_Backward();
+                DesiredTimeLeft = 20;
+                DesiredTimeRight = 20;
+                DelayMs(2000);
+                Motors_Backward();
+                DesiredTimeLeft = 20;
+                DesiredTimeRight = 20;
+                DelayMs(2000);
 		DelayMs(2000);
 		//configure OCR to go forward*/
 	}  //end while
@@ -785,13 +650,13 @@ void DeviceInit() {
 
 	// Configure Output Compare 2 to drive the left motor.
 	OC2CON	= ( 1 << 3 ) | ( 1 << 2 ) | ( 1 << 1 );	// PWM - Select Timer3 and Enable PWM(110)
-	OC2R	= dtcMtrStopped;
-	OC2RS	= dtcMtrStopped;
+	OC2R	= 0;
+	OC2RS	= 0;
 
 	// Configure Output Compare 3.
-	OC3CON = ( 1 << 3 ) | ( 1 << 2 ) | ( 1 << 1 );	// PWM - Select Timer3 and Enable PWM(110)
-	OC3R	= dtcMtrStopped;
-	OC3RS	= dtcMtrStopped;
+	OC3CON  = ( 1 << 3 ) | ( 1 << 2 ) | ( 1 << 1 );	// PWM - Select Timer3 and Enable PWM(110)
+	OC3R	= 0;
+	OC3RS	= 0;
 
 	// Configure Timer 2.
 	TMR2	= 0;									// clear timer 2 count
@@ -799,11 +664,11 @@ void DeviceInit() {
 
 	// Configure Timer 3.
 	TMR3	= 0;
-	PR3		= 999;
+	PR3		= 9999;
 
 	// Start timers and output compare units.
-	T2CON		= ( 1 << 15 ) | ( 1 << TCKPS20 )|(1 << TCKPS21);		// timer 2 prescale = 8
 	OC2CONSET	= ( 1 << 15 );	// enable output compare module 2
+        T2CON		= ( 1 << 15 ) | ( 1 << TCKPS20 ) | ( 1 << TCKPS21);	// timer 2 prescale = 8
 	OC3CONSET	= ( 1 << 15 );	// enable output compare module 3
 	T3CON		= ( 1 << 15 ) | ( 1 << TCKPS31 ) | ( 1 << TCKPS30); 	// timer 3 prescale = 8
 
@@ -852,7 +717,7 @@ void DeviceInit() {
         //Set PBC and ADC clock prescaller
         OSCCON ^= (1<<19)|(1<<20);
         AD1CON1SET = (1 << 15);  //Turn ADC on
-
+        
 	//enable SPI
 	SpiInit();
 
@@ -889,10 +754,11 @@ void AppInit() {
     lasterror3 = 0;
     error2 = 0;
     lasterror2 = 0;
-    DesiredTime2 = 0;
-    DesiredTime3 = 0;
+    DesiredTimeLeft = 0;
+    DesiredTimeRight = 0;
     BaseC3 = TimerCounter;
     BaseC2 = TimerCounter;
+    Motors_Forward();
 }
 
 
@@ -1022,7 +888,7 @@ void ErrorCalcPID2() {
     // Set previous error
     lasterror2 = error2;
     // Calculate Error
-    error2 = BaseC2 - DesiredTime2;
+    error2 = BaseC2 - DesiredTimeLeft;
     error2v[errorcount2] = error2;
     // Calculate Integral part
     sumerror2 += (float)Kisuperslow*error2;
@@ -1061,7 +927,7 @@ void ErrorCalcPID3() {
     // Set previous error
     lasterror3 = error3;
     // Calculate Error
-    error3 = BaseC3 - DesiredTime3;
+    error3 = BaseC3 - DesiredTimeRight;
     error3v[errorcount3] = error3;
     // Calculate Integral part
     sumerror3 += (float)Kisuperslow*error3;
