@@ -141,7 +141,7 @@ volatile	struct btn	PmodSwt3;
 volatile	struct btn	PmodSwt4;
 
 // State Machine
-typedef enum RobotState {Start, Backward, Forward, Idle, MotorChange} RobotState;
+typedef enum RobotState {Start, WallCheck, Backward, Forward, TurnLeft, TurnRight, MotorChange, Idle} RobotState;
 //Motors interrupts variables
 int TimerCounter, IC2Counter, IC3Counter, BaseC2, BaseC3, C2, C3, C2Counter = 0, C3Counter = 0;
 int TimesC2[10], TimesC3[10];
@@ -607,21 +607,8 @@ int main(void)
                 switch (state)
                 {
                     case Start:
-                        if (RightSensor < 10)
-                        {
-                            nextstate = Backward;
-                            state = MotorChange;
-                        }
-                        else if (RightSensor > 10 && RightSensor < 20)
-                        {
-                            nextstate  = Idle;
-                            state = MotorChange;
-                        }
-                        else if (RightSensor > 20)
-                        {
-                            nextstate = Forward;
-                            state = MotorChange;
-                        }
+                        Motors_Stop();
+                        state = Forward;
                         break;
                     case Forward:
                         if (RightSensor < 10)
@@ -662,17 +649,17 @@ int main(void)
                     case MotorChange:
                         if (nextstate == Forward)
                         {
-                            Motor_Right_Forward();
-                            DesiredTimeRight = 20;
+                            Motor_Left_Forward();
+                            DesiredTimeLeft = 20;
                         }
                         else if (nextstate == Backward)
                         {
-                            Motor_Right_Backward();
-                            DesiredTimeRight = 20;
+                            Motor_Left_Backward();
+                            DesiredTimeLeft = 20;
                         }
                         else if (nextstate == Idle)
                         {
-                            Motor_Right_Stop();
+                            Motor_Left_Stop();
                         }
                         state = nextstate;
                         break;
