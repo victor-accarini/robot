@@ -604,16 +604,37 @@ int main(void)
                 SpiDisable();
 
 		INTEnableInterrupts();
-                Motors_Forward();
-                //Motor_Left_Backward();
-                DesiredTimeLeft = 20;
-                DesiredTimeRight = 20;
-                DelayMs(2000);
-                Motors_Backward();
-                DesiredTimeLeft = 20;
-                DesiredTimeRight = 20;
-                DelayMs(2000);
-		DelayMs(2000);
+
+                if (LeftSensor < 10)
+                {
+                    Motor_Left_Backward();
+                    DesiredTimeLeft = 40;
+                }
+                else if (LeftSensor > 20)
+                {
+                    Motor_Left_Forward();
+                    DesiredTimeLeft = 40;
+                }
+                else
+                {
+                    Motor_Left_Stop();
+                }
+
+                if (RightSensor < 10)
+                {
+                    Motor_Right_Backward();
+                    DesiredTimeRight = 40;
+                }
+                else if (RightSensor > 20)
+                {
+                    Motor_Right_Forward();
+                    DesiredTimeRight = 40;
+                }
+                else
+                {
+                    Motor_Right_Stop();
+                }
+                DelayMs(1000);
 		//configure OCR to go forward*/
 	}  //end while
 }  //end main
@@ -649,12 +670,12 @@ void DeviceInit() {
 	prtMtrRightDirSet	= ( 1 << bnMtrRightDir );	// forward
 
 	// Configure Output Compare 2 to drive the left motor.
-	OC2CON	= ( 1 << 3 ) | ( 1 << 2 ) | ( 1 << 1 );	// PWM - Select Timer3 and Enable PWM(110)
+	OC2CON	= ( 1 << 2 ) | ( 1 << 1 );	// PWM - Select Timer2 and Enable PWM(110)
 	OC2R	= 0;
 	OC2RS	= 0;
 
 	// Configure Output Compare 3.
-	OC3CON  = ( 1 << 3 ) | ( 1 << 2 ) | ( 1 << 1 );	// PWM - Select Timer3 and Enable PWM(110)
+	OC3CON  = ( 1 << 2 ) | ( 1 << 1 );	// PWM - Select Timer2 and Enable PWM(110)
 	OC3R	= 0;
 	OC3RS	= 0;
 
@@ -700,7 +721,7 @@ void DeviceInit() {
         // Configure ADC Control Registers
         AD1CON1SET = (2 << 5)|(1 << 2);
         // ^ Set bits 5-7 which sets the ADC's auto convert
-        // ^ Set bit 2 which makes the ADC sample immediately after previous conversion.
+        // ^ Set bit 2 which makes the ADC sample immediately after previous conversion.(Timer 3)
         AD1CON2SET = (15 << 2);
         // ^ Trigger ADC interrupt after every 16th conversion.
         AD1CON3SET = (15 << 0);
