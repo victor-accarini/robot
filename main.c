@@ -141,7 +141,7 @@ volatile	struct btn	PmodSwt3;
 volatile	struct btn	PmodSwt4;
 
 // State Machine
-typedef enum RobotState {Start, Backward, Forward, MotorChange} RobotState;
+typedef enum RobotState {Start, Backward, Forward, Idle, MotorChange} RobotState;
 //Motors interrupts variables
 int TimerCounter, IC2Counter, IC3Counter, BaseC2, BaseC3, C2, C3, C2Counter = 0, C3Counter = 0;
 int TimesC2[10], TimesC3[10];
@@ -585,12 +585,11 @@ int main(void)
 
 	while (fTrue)
 	{
-                
                 INTDisableInterrupts();
                 LeftSensor = LeftSensorFormula(ADC1avg);
                 RightSensor = RightSensorFormula(ADC0avg);
-           
-                n2 = sprintf(str2, "Left: %7.2f", LeftSensor);//Left distance sensor
+                INTEnableInterrupts();
+                /*n2 = sprintf(str2, "Left: %7.2f", LeftSensor);//Left distance sensor
                 n3 = sprintf(str3, "Right: %6.2f ", RightSensor);//Right distance sensor
 
                 SpiEnable();
@@ -604,37 +603,80 @@ int main(void)
                 SpiDisable();
 
 		INTEnableInterrupts();
-
-                if (LeftSensor < 10)
+*/
+                switch (state)
                 {
-                    Motor_Left_Backward();
-                    DesiredTimeLeft = 40;
+                    case Start:
+                        if (RightSensor < 10)
+                        {
+                            nextstate = Backward;
+                            state = MotorChange;
+                        }
+                        else if (RightSensor > 10 && RightSensor < 20)
+                        {
+                            nextstate  = Idle;
+                            state = MotorChange;
+                        }
+                        else if (RightSensor > 20)
+                        {
+                            nextstate = Forward;
+                            state = MotorChange;
+                        }
+                        break;
+                    case Forward:
+                        if (RightSensor < 10)
+                        {
+                            nextstate = Backward;
+                            state = MotorChange;
+                        }
+                        else if (RightSensor > 10 && RightSensor < 20)
+                        {
+                            nextstate  = Idle;
+                            state = MotorChange;
+                        }
+                        break;
+                    case Backward:
+                        if (RightSensor > 10 && RightSensor < 20)
+                        {
+                            nextstate  = Idle;
+                            state = MotorChange;
+                        }
+                        else if (RightSensor > 20)
+                        {
+                            nextstate = Forward;
+                            state = MotorChange;
+                        }
+                        break;
+                    case Idle:
+                        if (RightSensor < 10)
+                        {
+                            nextstate = Backward;
+                            state = MotorChange;
+                        }
+                        else if (RightSensor > 20)
+                        {
+                            nextstate  = Forward;
+                            state = MotorChange;
+                        }
+                        break;
+                    case MotorChange:
+                        if (nextstate == Forward)
+                        {
+                            Motor_Right_Forward();
+                            DesiredTimeRight = 20;
+                        }
+                        else if (nextstate == Backward)
+                        {
+                            Motor_Right_Backward();
+                            DesiredTimeRight = 20;
+                        }
+                        else if (nextstate == Idle)
+                        {
+                            Motor_Right_Stop();
+                        }
+                        state = nextstate;
+                        break;
                 }
-                else if (LeftSensor > 20)
-                {
-                    Motor_Left_Forward();
-                    DesiredTimeLeft = 40;
-                }
-                else
-                {
-                    Motor_Left_Stop();
-                }
-
-                if (RightSensor < 10)
-                {
-                    Motor_Right_Backward();
-                    DesiredTimeRight = 40;
-                }
-                else if (RightSensor > 20)
-                {
-                    Motor_Right_Forward();
-                    DesiredTimeRight = 40;
-                }
-                else
-                {
-                    Motor_Right_Stop();
-                }
-                DelayMs(1000);
 		//configure OCR to go forward*/
 	}  //end while
 }  //end main
@@ -685,7 +727,7 @@ void DeviceInit() {
 
 	// Configure Timer 3. (Sensors)
 	TMR3	= 0;
-	PR3		= 9999;
+	PR3		= 999;
 
 	// Start timers and output compare units.
 	OC2CONSET	= ( 1 << 15 );	// enable output compare module 2
