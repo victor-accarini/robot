@@ -1,0 +1,23 @@
+# Executables
+*.out
+*.hex
+
+# Precompiled Headers
+*.ghc
+*.phc
+
+# Temporary files
+*~
+*.swp
+
+# Compiled Files
+*.pyc
+
+# Useless folders
+build/
+dist/
+debug/
+nbproject/
+
+# IDE files
+Makefile
