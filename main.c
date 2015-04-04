@@ -198,7 +198,112 @@ int     Zone(int Sensor);
 
 void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
 {
-
+        // PID for Right Wheel
+        if (DesiredTimeRight < 20 || DesiredTimeRight > 110){
+            error3 = 0;
+            lasterror3 = 0;
+            errorcount3 = 0;
+            sumerror3 = 0;
+            temp3 = 0;
+            OC3R = temp3;
+            OC3RS = temp3;
+            C3Counter = 0;
+            BaseC3 = 0;
+            C3 = 0;
+        }
+        else if (DesiredTimeRight <= 50) //When its Fast
+        {
+            if (C3Counter++ > 299)
+            {
+                //Check if wheel is stopped
+                if (Timer5LastInt3 == LastInt3)
+                {
+                    BaseC3 = 120;
+                }
+                //Calculate Error
+                ErrorCalcPID3();
+                // Calculate new speed
+                temp3 = (float)Kp*error3 + sumerror3 + (float)Kd*(error3-lasterror3);
+                //Limit temp values
+                if (temp3 > 9999)
+                {
+                    temp3 = 9999;
+                }
+                else if (temp3 < 0)
+                {
+                    temp3 = 0;
+                }
+                // Set new motor speed
+                OC3R 	= temp3;
+                OC3RS	= temp3;
+                C3Counter = 0;
+                errorcount3++;
+                if (errorcount3 > 299)
+                    errorcount3 = 0;
+               }
+        }
+        else if (DesiredTimeRight > 50 && DesiredTimeRight < 95) //When its slow
+        {
+            if (C3Counter++ > 99)
+            {
+                //Check if wheel is stopped
+                if (Timer5LastInt3 == LastInt3)
+                {
+                    BaseC3 = 120;
+                }
+                //Calculate Error
+                ErrorCalcPID3();
+                // Calculate new speed
+                temp3 = (float)Kpslow*error3 + sumerror3 + (float)Kdslow*(error3-lasterror3);
+                //Limit temp values
+                if (temp3 > 9999)
+                {
+                    temp3 = 9999;
+                }
+                else if (temp3 < 0)
+                {
+                    temp3 = 0;
+                }
+                // Set new motor speed
+                OC3R 	= temp3;
+                OC3RS	= temp3;
+                C3Counter = 0;
+                errorcount3++;
+                if (errorcount3 > 299)
+                    errorcount3 = 0;
+                }
+        }
+        else //110 is the max
+        {
+            if (C3Counter++ > 249)
+            {
+                //Check if wheel is stopped
+                if (Timer5LastInt3 == LastInt3)
+                {
+                    BaseC3 = 120;
+                }
+                //Calculate Error
+                ErrorCalcPID3();
+                // Calculate new speed
+                temp3 = (float)Kpsuperslow*error3 + sumerror3 + (float)Kdsuperslow*(error3-lasterror3);
+                //Limit temp values
+                if (temp3 > 9999)
+                {
+                    temp3 = 9999;
+                }
+                else if (temp3 < 0)
+                {
+                    temp3 = 0;
+                }
+                // Set new motor speed
+                OC3R 	= temp3;
+                OC3RS	= temp3;
+                C3Counter = 0;
+                errorcount3++;
+                if (errorcount3 > 299)
+                    errorcount3 = 0;
+                }
+        }
 
         // PID for Left Wheel
         if (DesiredTimeLeft < 20 || DesiredTimeLeft > 110){
@@ -307,112 +412,6 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                 }
         }
         
-        // PID for Right Wheel
-        if (DesiredTimeRight < 20 || DesiredTimeRight > 110){
-            error3 = 0;
-            lasterror3 = 0;
-            errorcount3 = 0;
-            sumerror3 = 0;
-            temp3 = 0;
-            OC3R = temp3;
-            OC3RS = temp3;
-            C3Counter = 0;
-            BaseC3 = 0;
-            C3 = 0;
-        }
-        else if (DesiredTimeRight <= 50) //When its Fast
-        {
-            if (C3Counter++ > 299)
-            {
-                //Check if wheel is stopped
-                if (Timer5LastInt3 == LastInt3)
-                {
-                    BaseC3 = 120;
-                }
-                //Calculate Error
-                ErrorCalcPID3();
-                // Calculate new speed
-                temp3 = (float)Kp*error3 + sumerror3 + (float)Kd*(error3-lasterror3);
-                //Limit temp values
-                if (temp3 > 9999)
-                {
-                    temp3 = 9999;
-                }
-                else if (temp3 < 0)
-                {
-                    temp3 = 0;
-                }
-                // Set new motor speed
-                OC3R 	= temp3;
-                OC3RS	= temp3;
-                C3Counter = 0;
-                errorcount3++;
-                if (errorcount3 > 299)
-                    errorcount3 = 0;
-               }
-        }
-        else if (DesiredTimeRight > 50 && DesiredTimeRight < 95) //When its slow
-        {
-            if (C3Counter++ > 99)
-            {
-                //Check if wheel is stopped
-                if (Timer5LastInt3 == LastInt3)
-                {
-                    BaseC3 = 120;
-                }
-                //Calculate Error
-                ErrorCalcPID3();
-                // Calculate new speed
-                temp3 = (float)Kpslow*error3 + sumerror3 + (float)Kdslow*(error3-lasterror3);
-                //Limit temp values
-                if (temp3 > 9999)
-                {
-                    temp3 = 9999;
-                }
-                else if (temp3 < 0)
-                {
-                    temp3 = 0;
-                }
-                // Set new motor speed
-                OC3R 	= temp3;
-                OC3RS	= temp3;
-                C3Counter = 0;
-                errorcount3++;
-                if (errorcount3 > 299)
-                    errorcount3 = 0;
-                }
-        }
-        else //110 is the max
-        {
-            if (C3Counter++ > 249)
-            {
-                //Check if wheel is stopped
-                if (Timer5LastInt3 == LastInt3)
-                {
-                    BaseC3 = 120;
-                }
-                //Calculate Error
-                ErrorCalcPID3();
-                // Calculate new speed
-                temp3 = (float)Kpsuperslow*error3 + sumerror3 + (float)Kdsuperslow*(error3-lasterror3);
-                //Limit temp values
-                if (temp3 > 9999)
-                {
-                    temp3 = 9999;
-                }
-                else if (temp3 < 0)
-                {
-                    temp3 = 0;
-                }
-                // Set new motor speed
-                OC3R 	= temp3;
-                OC3RS	= temp3;
-                C3Counter = 0;
-                errorcount3++;
-                if (errorcount3 > 299)
-                    errorcount3 = 0;
-                }
-        }
         Timer5LastInt2 = LastInt2;
         Timer5LastInt3 = LastInt3;
         TimerCounter++;
@@ -539,7 +538,7 @@ void __ISR(_INPUT_CAPTURE_3_VECTOR, ipl7) _IC3_IntHandler(void)
 */
 
 int main(void)
-{ //State machine?
+{
         char str2[12], str3[12];
         int n2, n3;
         float LeftSensor, RightSensor;
@@ -634,14 +633,14 @@ int main(void)
                         if (nextstate == Forward)
                         {
                             Motors_Forward();
-                            DesiredTimeLeft = 20;
-                            DesiredTimeRight = 20;
+                            DesiredTimeLeft = 60;
+                            DesiredTimeRight = 60;
                         }
                         else if (nextstate == Backward)
                         {
                             Motors_Backward();
-                            DesiredTimeLeft = 20;
-                            DesiredTimeRight = 20;
+                            DesiredTimeLeft = 60;
+                            DesiredTimeRight = 60;
                         }
                         else if (nextstate == Idle)
                         {
@@ -650,7 +649,7 @@ int main(void)
                         state = nextstate;
                         break;
                 }
-		//configure OCR to go forward*/
+
 	}  //end while
 }  //end main
 
@@ -684,7 +683,7 @@ void DeviceInit() {
 
 	// Configure Timer 3. (Sensors)
 	TMR3	= 0;
-	PR3		= 999;
+	PR3		= 299;
 
 	// Start timers and output compare units.
 	OC2CONSET	= ( 1 << 15 );	// enable output compare module 2
@@ -845,7 +844,7 @@ int Zone(int Sensor)
     {
         return 0;
     }
-    else if (Sensor < 15) // Second zone
+    else if (Sensor < 10) // Second zone
     {
         return 1;
     }
