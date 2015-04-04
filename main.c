@@ -171,7 +171,9 @@ void    CheckStoppedWheel2(int delay);
 void    CheckStoppedWheel3(int delay);
 void    ErrorCalcPID2();
 void    ErrorCalcPID3();
-
+float   LeftSensorFormula(int Sensor);
+float   RightSensorFormula(int Sensor);
+int     Zone(int Sensor);
 /* ------------------------------------------------------------ */
 /*				Interrupt Service Routines						*/
 /* ------------------------------------------------------------ */
@@ -492,46 +494,6 @@ void __ISR(_INPUT_CAPTURE_3_VECTOR, ipl7) _IC3_IntHandler(void)
         IFS0CLR	= ( 1 << 13 );	// clear interrupt flag for Input Capture 3
 }
 
-/***	LeftSensorFormula
-**
-**	Parameters:
-**		none
-**
-**	Return Value:
-**		none
-**
-**	Errors:
-**		none
-**
-**	Description:
-**		Give the distance from a object
-**              to the sensor based on sensor value.
-*/
-float LeftSensorFormula(int SensorValue)
-{
-    return (float)(7525.3*pow(SensorValue,-1.157));
-}
-
-/***	RightSensorFormula
-**
-**	Parameters:
-**		none
-**
-**	Return Value:
-**		none
-**
-**	Errors:
-**		none
-**
-**	Description:
-**		Give the distance from a object
-**              to the sensor based on sensor value.
-*/
-float RightSensorFormula(int SensorValue)
-{
-    return (float)(46.5511*exp(-0.0044*SensorValue));
-}
-
 /* ------------------------------------------------------------ */
 /*				Procedure Definitions							*/
 /* ------------------------------------------------------------ */
@@ -611,55 +573,57 @@ int main(void)
                         state = Forward;
                         break;
                     case Forward:
-                        if (RightSensor < 10)
+                        if (Zone(RightSensor) == 1)
                         {
-                            nextstate = Backward;
+                            nextstate = Idle;
                             state = MotorChange;
                         }
-                        else if (RightSensor > 10 && RightSensor < 20)
+                        else if (Zone(RightSensor) == 0)
                         {
-                            nextstate  = Idle;
+                            nextstate = Backward;
                             state = MotorChange;
                         }
                         break;
                     case Backward:
-                        if (RightSensor > 10 && RightSensor < 20)
-                        {
-                            nextstate  = Idle;
-                            state = MotorChange;
-                        }
-                        else if (RightSensor > 20)
+                        if (Zone(RightSensor) >= 2)
                         {
                             nextstate = Forward;
                             state = MotorChange;
                         }
-                        break;
-                    case Idle:
-                        if (RightSensor < 10)
+                        else if (Zone(RightSensor) == 1)
                         {
-                            nextstate = Backward;
+                            nextstate = Idle;
                             state = MotorChange;
                         }
-                        else if (RightSensor > 20)
+                        break;
+                    case Idle:
+                        if (Zone(RightSensor) >= 2)
                         {
-                            nextstate  = Forward;
+                            nextstate = Forward;
+                            state = MotorChange;
+                        }
+                        else if (Zone(RightSensor) == 0)
+                        {
+                            nextstate = Backward;
                             state = MotorChange;
                         }
                         break;
                     case MotorChange:
                         if (nextstate == Forward)
                         {
-                            Motor_Left_Forward();
+                            Motors_Forward();
                             DesiredTimeLeft = 20;
+                            DesiredTimeRight = 20;
                         }
                         else if (nextstate == Backward)
                         {
-                            Motor_Left_Backward();
+                            Motors_Backward();
                             DesiredTimeLeft = 20;
+                            DesiredTimeRight = 20;
                         }
                         else if (nextstate == Idle)
                         {
-                            Motor_Left_Stop();
+                            Motors_Stop();
                         }
                         state = nextstate;
                         break;
@@ -668,25 +632,9 @@ int main(void)
 	}  //end while
 }  //end main
 
-/* ------------------------------------------------------------ */
-/***	DeviceInit
-**
-**	Synopsis:
-**		DeviceInit()
-**
-**	Parameters:
-**		none
-**
-**	Return Values:
-**		none
-**
-**	Errors:
-**		none
-**
-**	Description:
-**		Initializes on chip peripheral devices to the default
-**		state.
-*/
+/*
+ *  Initialization Functions
+ */
 
 void DeviceInit() {
 
@@ -775,26 +723,6 @@ void DeviceInit() {
 	INTEnableSystemMultiVectoredInt();
 }
 
-/* ------------------------------------------------------------ */
-/***	AppInit
-**
-**	Synopsis:
-**		AppInit()
-**
-**	Parameters:
-**		none
-**
-**	Return Values:
-**		none
-**
-**	Errors:
-**		none
-**
-**	Description:
-**		Performs application specific initialization. Sets devices
-**		and global variables for application.
-*/
-
 void AppInit() {
     
     TimerCounter = 0;
@@ -811,72 +739,11 @@ void AppInit() {
     Motors_Forward();
 }
 
+/*
+ *  PID Functions
+ */
 
-/* ------------------------------------------------------------ */
-/***	Wait_ms
-**
-**	Synopsis:
-**		Wait_ms(WORD)
-**
-**	Parameters:
-**		WORD (range from 0 to 65535)
-**
-**	Return Values:
-**		none
-**
-**	Errors:
-**		none
-**
-**	Description:
-**		Will wait for specified number of milliseconds.  Using a
-**		word variable allows for delays up to 65.535 seconds.  The value
-**		in the for statement may need to be altered depending on how your
-**		compiler translates this code into AVR assembly.  In assembly, it is
-**		possible to generate exact delay values by counting the number of clock
-**		cycles your loop takes to execute.  When writing code in C, the compiler
-**		interprets the code, and translates it into assembly.  This process is
-**		notoriously inefficient and may vary between different versions of AVR Studio
-**		and WinAVR GCC.  A handy method of calibrating the delay loop is to write a
-**		short program that toggles an LED on and off once per second using this
-**		function and using a watch to time how long it is actually taking to
-**		complete.
-**
-*/
-
-void Wait_ms(WORD delay) {
-
-	WORD i;
-
-	while(delay > 0){
-
-		for( i = 0; i < 375; i ++){
-			;;
-		}
-		delay -= 1;
-	}
-}
-
-/* ------------------------------------------------------------ */
-/***	CheckStoppedWheel2
-**
-**	Synopsis:
-**		CheckStoppedWheel2()
-**
-**	Parameters:
-**		none
-**
-**	Return Values:
-**		none
-**
-**	Errors:
-**		none
-**
-**	Description:
-**		Check if the wheel is stopped and give it a initial
-**              burst to enable the error in the PID controller.
-*/
-
-void CheckStoppedWheel2(int delay) {
+void CheckStoppedWheelLeft(int delay) {
     /*if (LastIntCount2 > 10){
         MtrCtrlFwd();
         //OC2R = 9999;
@@ -885,27 +752,7 @@ void CheckStoppedWheel2(int delay) {
     }//*/
 }
 
-/* ------------------------------------------------------------ */
-/***	CheckStoppedWheel3
-**
-**	Synopsis:
-**		CheckStoppedWheel3()
-**
-**	Parameters:
-**		none
-**
-**	Return Values:
-**		none
-**
-**	Errors:
-**		none
-**
-**	Description:
-**		Check if the wheel is stopped and give it a initial
-**              burst to enable the error in the PID controller.
-*/
-
-void CheckStoppedWheel3(int delay) {
+void CheckStoppedWheelRight(int delay) {
     /*if (LastIntCount3 > 10){
         MtrCtrlFwd();
         //OC3R = 9999;
@@ -913,26 +760,6 @@ void CheckStoppedWheel3(int delay) {
         BaseC3 = 50;
     }//*/
 }
-
-/* ------------------------------------------------------------ */
-/***	ErrorCalcPID2
-**
-**	Synopsis:
-**		ErrorCalcPID2()
-**
-**	Parameters:
-**		none
-**
-**	Return Values:
-**		none
-**
-**	Errors:
-**		none
-**
-**	Description:
-**		Calculate the error for the PID controller.
-**              
-*/
 
 void ErrorCalcPID2() {
     // Set previous error
@@ -953,26 +780,6 @@ void ErrorCalcPID2() {
     }
 }
 
-/* ------------------------------------------------------------ */
-/***	ErrorCalcPID3
-**
-**	Synopsis:
-**		ErrorCalcPID3()
-**
-**	Parameters:
-**		none
-**
-**	Return Values:
-**		none
-**
-**	Errors:
-**		none
-**
-**	Description:
-**		Calculate the error for the PID controller.
-**              
-*/
-
 void ErrorCalcPID3() {
     // Set previous error
     lasterror3 = error3;
@@ -989,6 +796,42 @@ void ErrorCalcPID3() {
     else if (sumerror3 < -20000)
     {
         sumerror3 = -20000;
+    }
+}
+
+/*
+ *  Sensors Functions
+ */
+
+/* Returns the distance from the left sensor */
+float LeftSensorFormula(int SensorValue)
+{
+    return (float)(7525.3*pow(SensorValue,-1.157));
+}
+
+/* Returns the distance from the right sensor*/
+float RightSensorFormula(int SensorValue)
+{
+    return (float)(46.5511*exp(-0.0044*SensorValue));
+}
+
+int Zone(int Sensor)
+{
+    if (Sensor < 5) // First zone
+    {
+        return 0;
+    }
+    else if (Sensor < 10) // Second zone
+    {
+        return 1;
+    }
+    else if (Sensor < 20) // Third zone
+    {
+        return 2;
+    }
+    else // Out of range
+    {
+        return 3;
     }
 }
 
