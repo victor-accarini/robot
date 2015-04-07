@@ -141,7 +141,7 @@ volatile	struct btn	PmodSwt3;
 volatile	struct btn	PmodSwt4;
 
 // State Machine
-typedef enum RobotState {Start, WallCheck, Backward, Forward, TurnLeft, TurnRight, MotorChange, Idle} RobotState;
+typedef enum RobotState {Start, WallCheck, ForwardFast, ForwardMedium, ForwardSlow, TurnLeft45, TurnLeft90, TurnRight45, MotorChange} RobotState;
 //Motors interrupts variables
 int TimerCounter, IC2Counter, IC3Counter, BaseC2, BaseC3, C2, C3, C2Counter = 0, C3Counter = 0;
 int TimesC2[10], TimesC3[10];
@@ -160,6 +160,10 @@ int ADCValue_0[25], ADCValue_1[25]; //will store ADC results in these variables
 int adc_index = 0;
 int adc_counter = 0;
 int ADC0avg, ADC1avg, ADC0sum, ADC1sum;
+
+// Sensor variables
+int RZ;
+int LZ;
 /* ------------------------------------------------------------ */
 /*				Forward Declarations							*/
 /* ------------------------------------------------------------ */
@@ -173,7 +177,7 @@ void    ErrorCalcPID2();
 void    ErrorCalcPID3();
 float   LeftSensorFormula(int Sensor);
 float   RightSensorFormula(int Sensor);
-int     Zone(int Sensor);
+void    Zone(int RSensor, int LSensor);
 /* ------------------------------------------------------------ */
 /*				Interrupt Service Routines						*/
 /* ------------------------------------------------------------ */
@@ -218,7 +222,16 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                 //Check if wheel is stopped
                 if (Timer5LastInt3 == LastInt3)
                 {
-                    BaseC3 = 120;
+                    if (LastIntCount3 < 10)
+                    {
+                        LastIntCount3++;
+                    }
+                    else
+                    {
+                        BaseC3 = 120;
+                    }
+                } else {
+                    LastIntCount3 = 0;
                 }
                 //Calculate Error
                 ErrorCalcPID3();
@@ -249,7 +262,16 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                 //Check if wheel is stopped
                 if (Timer5LastInt3 == LastInt3)
                 {
-                    BaseC3 = 120;
+                    if (LastIntCount3 < 25)
+                    {
+                        LastIntCount3++;
+                    }
+                    else
+                    {
+                        BaseC3 = 120;
+                    }
+                } else {
+                    LastIntCount3 = 0;
                 }
                 //Calculate Error
                 ErrorCalcPID3();
@@ -275,12 +297,21 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
         }
         else //110 is the max
         {
-            if (C3Counter++ > 249)
+            if (C3Counter++ > 99)
             {
                 //Check if wheel is stopped
                 if (Timer5LastInt3 == LastInt3)
                 {
-                    BaseC3 = 120;
+                    if (LastIntCount3 < 25)
+                    {
+                        LastIntCount3++;
+                    }
+                    else
+                    {
+                        BaseC3 = 120;
+                    }
+                } else {
+                    LastIntCount3 = 0;
                 }
                 //Calculate Error
                 ErrorCalcPID3();
@@ -325,7 +356,16 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                 //Check if wheel is stopped
                 if (Timer5LastInt2 == LastInt2)
                 {
-                    BaseC2 = 120;
+                    if (LastIntCount2 < 50)
+                    {
+                        LastIntCount2++;
+                    }
+                    else
+                    {
+                        BaseC2 = 120;
+                    }
+                } else {
+                    LastIntCount2 = 0;
                 }
                 //Calculate Error
                 ErrorCalcPID2();
@@ -356,7 +396,16 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                 //Check if wheel is stopped
                 if (Timer5LastInt2 == LastInt2)
                 {
-                    BaseC2 = 120;
+                    if (LastIntCount2 < 25)
+                    {
+                        LastIntCount2++;
+                    }
+                    else
+                    {
+                        BaseC2 = 120;
+                    }
+                } else {
+                    LastIntCount2 = 0;
                 }
                 //Calculate Error
                 ErrorCalcPID2();
@@ -382,12 +431,21 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
         }
         else //110 is the max
         {
-            if (C2Counter++ > 249)
+            if (C2Counter++ > 99)
             {
                 //Check if wheel is stopped
                 if (Timer5LastInt2 == LastInt2)
                 {
-                    BaseC2 = 120;
+                    if (LastIntCount2 < 25)
+                    {
+                        LastIntCount2++;
+                    }
+                    else
+                    {
+                        BaseC2 = 120;
+                    }
+                } else {
+                    LastIntCount2 = 0;
                 }
                 //Calculate Error
                 ErrorCalcPID2();
@@ -440,7 +498,6 @@ void __ISR(_INPUT_CAPTURE_2_VECTOR, ipl7) _IC2_IntHandler(void)
         BaseC2 = TimerCounter - C2;
         C2 = TimerCounter;
         LastInt2 = TimerCounter;
-        LastIntCount2 = 0;
         INTEnableInterrupts();
         
         buf = IC2BUF;           // Read the buffer to clear space
@@ -451,16 +508,16 @@ void __ISR(_INPUT_CAPTURE_2_VECTOR, ipl7) _IC2_IntHandler(void)
 /* ADC ISR */
 void __ISR(_ADC_VECTOR, ipl3) _ADC_IntHandler(void){
 
-        if (adc_index >= 25)
+        if (adc_index >= 10)
             {  adc_index = 0;}
     	
         if (AD1CHS == 0x00)
         {
             ADCValue_0[adc_index] = ADC1BUF0;
             ADC0sum += ADCValue_0[adc_index];
-            if (adc_counter % 25 == 0)
+            if (adc_counter % 10 == 0)
             {
-                ADC0avg = ADC0sum/25;
+                ADC0avg = ADC0sum/10;
                 ADC0sum = 0;
                 AD1CHSSET = (1 << 16);
             }
@@ -470,9 +527,9 @@ void __ISR(_ADC_VECTOR, ipl3) _ADC_IntHandler(void){
         {
             ADCValue_1[adc_index] = ADC1BUF1;
             ADC1sum += ADCValue_1[adc_index];
-            if (adc_counter % 25 == 0)
+            if (adc_counter % 10 == 0)
             {
-                ADC1avg = ADC1sum/25;
+                ADC1avg = ADC1sum/10;
                 ADC1sum = 0;
                 AD1CHSCLR = (1 << 16);
             }
@@ -508,7 +565,6 @@ void __ISR(_INPUT_CAPTURE_3_VECTOR, ipl7) _IC3_IntHandler(void)
         BaseC3 = TimerCounter - C3;
         C3 = TimerCounter;
         LastInt3 = TimerCounter;
-        LastIntCount3 = 0;
         INTEnableInterrupts();
 
         buf = IC3BUF;
@@ -542,7 +598,7 @@ int main(void)
         char str2[12], str3[12];
         int n2, n3;
         float LeftSensor, RightSensor;
-        RobotState state = Start , nextstate;
+        RobotState state = Start , nextstate, laststate = Start;
         //RobotState state;
 	DeviceInit();
         INTDisableInterrupts();
@@ -572,8 +628,11 @@ int main(void)
                 LeftSensor = LeftSensorFormula(ADC1avg);
                 RightSensor = RightSensorFormula(ADC0avg);
                 INTEnableInterrupts();
-                /*n2 = sprintf(str2, "Left: %7.2f", LeftSensor);//Left distance sensor
-                n3 = sprintf(str3, "Right: %6.2f ", RightSensor);//Right distance sensor
+                // Check the Sensors
+                Zone(RightSensor, LeftSensor);
+
+                /*n2 = sprintf(str2, "Left: %7d", LZ);//Left distance sensor
+                n3 = sprintf(str3, "Right: %6d ", RZ);//Right distance sensor
 
                 SpiEnable();
                 SpiPutBuff(szCursorPosC2, 6);//First counter
@@ -587,69 +646,79 @@ int main(void)
 
 		INTEnableInterrupts();
 */
+                
                 switch (state)
                 {
                     case Start:
                         Motors_Stop();
-                        state = Idle;
+                        state = WallCheck;
                         break;
-                    case Forward:
-                        if (Zone(RightSensor) == 1)
+                    case WallCheck:
+                        if (RZ == 3 && LZ == 3)
                         {
-                            nextstate = Idle;
-                            state = MotorChange;
+                            nextstate = ForwardFast;
                         }
-                        else if (Zone(RightSensor) == 0)
+                        else if ( (RZ == 2 && LZ >= 2) || (RZ >= 2 && LZ == 2) )
                         {
-                            nextstate = Backward;
-                            state = MotorChange;
+                            nextstate = ForwardMedium;
                         }
-                        break;
-                    case Backward:
-                        if (Zone(RightSensor) >= 2)
+                        else if ( (RZ == 1 && LZ >= 1) || (RZ >= 1 && LZ == 1) )
                         {
-                            nextstate = Forward;
-                            state = MotorChange;
+                            nextstate = ForwardSlow;
                         }
-                        else if (Zone(RightSensor) == 1)
+                        else if ( RZ == 0 && LZ != 0 )
                         {
-                            nextstate = Idle;
-                            state = MotorChange;
+                            nextstate = TurnRight45;
                         }
-                        break;
-                    case Idle:
-                        if (Zone(RightSensor) >= 2)
+                        else if ( LZ == 0 && RZ != 0 )
                         {
-                            nextstate = Forward;
-                            state = MotorChange;
+                            nextstate = TurnLeft45;
                         }
-                        else if (Zone(RightSensor) == 0)
+                        else if ( LZ == 0 && RZ == 0)
                         {
-                            nextstate = Backward;
-                            state = MotorChange;
+                            nextstate = TurnLeft90;
                         }
+                        state = MotorChange;
                         break;
                     case MotorChange:
-                        if (nextstate == Forward)
+                        if (laststate != nextstate)
                         {
-                            Motors_Forward();
-                            DesiredTimeLeft = 60;
-                            DesiredTimeRight = 60;
+                            if (nextstate == ForwardFast)
+                            {
+                                DesiredTimeLeft = 20;
+                                DesiredTimeRight = 20;
+                            }
+                            else if (nextstate == ForwardMedium)
+                            {
+                                DesiredTimeLeft = 60;
+                                DesiredTimeRight = 60;
+                            }
+                            else if (nextstate == ForwardSlow)
+                            {
+                                DesiredTimeLeft = 100;
+                                DesiredTimeRight = 100;
+                            }
+                            else if (nextstate == TurnRight45)
+                            {
+                                DesiredTimeLeft = 90;
+                                DesiredTimeRight = 100;
+                            }
+                            else if (nextstate == TurnLeft45)
+                            {
+                                DesiredTimeLeft = 100;
+                                DesiredTimeRight = 90;
+                            }
+                            else if (nextstate == TurnLeft90)
+                            {
+                                DesiredTimeLeft = 0;
+                                DesiredTimeRight = 80;
+                            }
                         }
-                        else if (nextstate == Backward)
-                        {
-                            Motors_Backward();
-                            DesiredTimeLeft = 60;
-                            DesiredTimeRight = 60;
-                        }
-                        else if (nextstate == Idle)
-                        {
-                            Motors_Stop();
-                        }
-                        state = nextstate;
+                        laststate = nextstate;
+                        state = WallCheck;
                         break;
                 }
-
+                
 	}  //end while
 }  //end main
 
@@ -838,22 +907,39 @@ float RightSensorFormula(int SensorValue)
     return (float)(46.5511*exp(-0.0044*SensorValue));
 }
 
-int Zone(int Sensor)
+void Zone(int RSensor, int LSensor)
 {
-    if (Sensor < 3) // First zone
+    if (RSensor < 15) // First zone
     {
-        return 0;
+        RZ = 0;
     }
-    else if (Sensor < 10) // Second zone
+    else if (RSensor < 40) // Second zone
     {
-        return 1;
+        RZ = 1;
     }
-    else if (Sensor < 20) // Third zone
+    else if (RSensor < 70) // Third zone
     {
-        return 2;
+        RZ = 2;
     }
     else // Out of range
     {
-        return 3;
+        RZ = 3;
+    }
+
+    if (LSensor < 15) // First zone
+    {
+        LZ = 0;
+    }
+    else if (LSensor < 40) // Second zone
+    {
+        LZ = 1;
+    }
+    else if (LSensor < 70) // Third zone
+    {
+        LZ = 2;
+    }
+    else // Out of range
+    {
+        LZ = 3;
     }
 }
