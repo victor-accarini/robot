@@ -141,7 +141,8 @@ volatile	struct btn	PmodSwt3;
 volatile	struct btn	PmodSwt4;
 
 // State Machine
-typedef enum RobotState {Start, WallCheck, ForwardFast, ForwardMedium, ForwardSlow, TurnLeft45, TurnLeft90, TurnRight45, MotorChange} RobotState;
+typedef enum RobotState {Start, WallCheck, ForwardFast, ForwardMedium, ForwardSlow, TurnLeft45,
+        TurnLeft90, TurnRight45, TurnRightSmall, TurnLeftSmall, MotorChange} RobotState;
 //Motors interrupts variables
 int TimerCounter, IC2Counter, IC3Counter, BaseC2, BaseC3, C2, C3, C2Counter = 0, C3Counter = 0;
 int TimesC2[10], TimesC3[10];
@@ -156,10 +157,10 @@ int Kp = 100, Ki = 50, Kd = 25, Kpslow = 50, Kislow = 25, Kdslow = 12, Kpsupersl
 int LastInt2, LastInt3, Timer5LastInt2, Timer5LastInt3, LastIntCount2=0, LastIntCount3=0;
 
 //ADC variables
-int ADCValue_0[25], ADCValue_1[25]; //will store ADC results in these variables
+int ADCValue_0[25], ADCValue_1[25], ADCValue_2[25], ADCValue_3[25]; //will store ADC results in these variables
 int adc_index = 0;
 int adc_counter = 0;
-int ADC0avg, ADC1avg, ADC0sum, ADC1sum;
+int ADC0avg, ADC1avg, ADC2avg, ADC3avg, ADC0sum, ADC1sum, ADC2sum, ADC3sum;
 
 // Sensor variables
 int RZ;
@@ -220,7 +221,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
             if (C3Counter++ > 299)
             {
                 //Check if wheel is stopped
-                if (Timer5LastInt3 == LastInt3)
+                /*if (Timer5LastInt3 == LastInt3)
                 {
                     if (LastIntCount3 < 10)
                     {
@@ -232,7 +233,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                     }
                 } else {
                     LastIntCount3 = 0;
-                }
+                }*/
                 //Calculate Error
                 ErrorCalcPID3();
                 // Calculate new speed
@@ -260,7 +261,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
             if (C3Counter++ > 99)
             {
                 //Check if wheel is stopped
-                if (Timer5LastInt3 == LastInt3)
+                /*if (Timer5LastInt3 == LastInt3)
                 {
                     if (LastIntCount3 < 25)
                     {
@@ -272,7 +273,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                     }
                 } else {
                     LastIntCount3 = 0;
-                }
+                }*/
                 //Calculate Error
                 ErrorCalcPID3();
                 // Calculate new speed
@@ -300,7 +301,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
             if (C3Counter++ > 99)
             {
                 //Check if wheel is stopped
-                if (Timer5LastInt3 == LastInt3)
+                /*if (Timer5LastInt3 == LastInt3)
                 {
                     if (LastIntCount3 < 25)
                     {
@@ -312,7 +313,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                     }
                 } else {
                     LastIntCount3 = 0;
-                }
+                }*/
                 //Calculate Error
                 ErrorCalcPID3();
                 // Calculate new speed
@@ -354,7 +355,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
             if (C2Counter++ > 299)
             {
                 //Check if wheel is stopped
-                if (Timer5LastInt2 == LastInt2)
+                /*if (Timer5LastInt2 == LastInt2)
                 {
                     if (LastIntCount2 < 50)
                     {
@@ -366,7 +367,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                     }
                 } else {
                     LastIntCount2 = 0;
-                }
+                }*/
                 //Calculate Error
                 ErrorCalcPID2();
                 // Calculate new speed
@@ -394,7 +395,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
             if (C2Counter++ > 99)
             {
                 //Check if wheel is stopped
-                if (Timer5LastInt2 == LastInt2)
+                /*if (Timer5LastInt2 == LastInt2)
                 {
                     if (LastIntCount2 < 25)
                     {
@@ -406,7 +407,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                     }
                 } else {
                     LastIntCount2 = 0;
-                }
+                }*/
                 //Calculate Error
                 ErrorCalcPID2();
                 // Calculate new speed
@@ -434,7 +435,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
             if (C2Counter++ > 99)
             {
                 //Check if wheel is stopped
-                if (Timer5LastInt2 == LastInt2)
+                /*if (Timer5LastInt2 == LastInt2)
                 {
                     if (LastIntCount2 < 25)
                     {
@@ -446,7 +447,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                     }
                 } else {
                     LastIntCount2 = 0;
-                }
+                }*/
                 //Calculate Error
                 ErrorCalcPID2();
                 // Calculate new speed
@@ -474,6 +475,91 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
         Timer5LastInt3 = LastInt3;
         TimerCounter++;
         mT5ClearIntFlag();
+}
+
+/* ADC ISR */
+void __ISR(_ADC_VECTOR, ipl3) _ADC_IntHandler(void){
+
+        if (adc_index >= 10)
+            {  adc_index = 0;}
+    	/*
+        //if (AD1CHS == 0x00) //Right Front
+        //{
+            ADCValue_0[adc_index] = ADC1BUF0;
+            ADC0sum += ADCValue_0[adc_index];
+            if (adc_counter % 10 == 0)
+            {
+                ADC0avg = ADC0sum/10;
+                ADC0sum = 0;
+                //Set the next channel to be sampled
+                //AD1CHSCLR = (7 << 16);
+                //AD1CHSSET = (1 << 16);
+            }
+            
+        //}
+        //else if (AD1CHS == 0x01) //Front
+        //{
+            ADCValue_1[adc_index] = ADC1BUF1;
+            ADC1sum += ADCValue_1[adc_index];
+            if (adc_counter % 10 == 0)
+            {
+                ADC1avg = ADC1sum/10;
+                ADC1sum = 0;
+                //AD1CHSCLR = (7 << 16);
+                //AD1CHSSET = (1 << 17);
+            }
+        //}
+        //else if (AD1CHS == 0x02) //Right Back
+        //{
+            ADCValue_2[adc_index] = ADC1BUF2;
+            ADC2sum += ADCValue_2[adc_index];
+            if (adc_counter % 10 == 0)
+            {
+                ADC2avg = ADC2sum/10;
+                ADC2sum = 0;
+                //AD1CHSCLR = (7 << 16);
+                //AD1CHSSET = (3 << 16);
+            }
+        //}
+        //else //if (AD1CHS == 0x03) //Left
+        //{
+            ADCValue_3[adc_index] = ADC1BUF3;
+            ADC3sum += ADCValue_3[adc_index];
+            if (adc_counter % 10 == 0)
+            {
+                ADC3avg = ADC3sum/10;
+                ADC3sum = 0;
+                //AD1CHSCLR = (7 << 16);
+            }
+        //}*/
+
+        ADCValue_0[adc_index] = ADC1BUF0;
+        ADC0sum += ADCValue_0[adc_index];
+        ADCValue_1[adc_index] = ADC1BUF1;
+        ADC1sum += ADCValue_1[adc_index];
+        ADCValue_2[adc_index] = ADC1BUF2;
+        ADC2sum += ADCValue_2[adc_index];
+        ADCValue_3[adc_index] = ADC1BUF3;
+        ADC3sum += ADCValue_3[adc_index];
+        if (adc_counter % 10 == 0)
+        {
+            ADC0avg = ADC0sum/10;
+            ADC1avg = ADC1sum/10;
+            ADC2avg = ADC2sum/10;
+            ADC3avg = ADC3sum/10;
+            adc_index = 0;
+            ADC0sum = 0;
+            ADC1sum = 0;
+            ADC2sum = 0;
+            ADC3sum = 0;
+        }
+        adc_index++;
+        adc_counter++;
+    	AD1CON1CLR = 0x00000001; //clear the DONE bit
+    	IFS1CLR = (1 << 1); //clear interrupt flag for 'ADC1 Conversion Complete'
+    	//AD1CON1SET = 0x0002; //start sampling ??
+	
+	
 }
 
 /***	IC2Handler
@@ -505,44 +591,6 @@ void __ISR(_INPUT_CAPTURE_2_VECTOR, ipl7) _IC2_IntHandler(void)
 
 }
 
-/* ADC ISR */
-void __ISR(_ADC_VECTOR, ipl3) _ADC_IntHandler(void){
-
-        if (adc_index >= 10)
-            {  adc_index = 0;}
-    	
-        if (AD1CHS == 0x00)
-        {
-            ADCValue_0[adc_index] = ADC1BUF0;
-            ADC0sum += ADCValue_0[adc_index];
-            if (adc_counter % 10 == 0)
-            {
-                ADC0avg = ADC0sum/10;
-                ADC0sum = 0;
-                AD1CHSSET = (1 << 16);
-            }
-            
-        }
-        else
-        {
-            ADCValue_1[adc_index] = ADC1BUF1;
-            ADC1sum += ADCValue_1[adc_index];
-            if (adc_counter % 10 == 0)
-            {
-                ADC1avg = ADC1sum/10;
-                ADC1sum = 0;
-                AD1CHSCLR = (1 << 16);
-            }
-        }
-        
-        adc_index++;
-        adc_counter++;
-    	AD1CON1CLR = 0x00000001; //clear the DONE bit
-    	IFS1CLR = (1 << 1); //clear interrupt flag for 'ADC1 Conversion Complete'
-    	//AD1CON1SET = 0x0002; //start sampling ??
-	
-	
-}
 /***	IC3Handler
 **
 **	Parameters:
@@ -631,8 +679,8 @@ int main(void)
                 // Check the Sensors
                 Zone(RightSensor, LeftSensor);
 
-                /*n2 = sprintf(str2, "Left: %7d", LZ);//Left distance sensor
-                n3 = sprintf(str3, "Right: %6d ", RZ);//Right distance sensor
+                n2 = sprintf(str2, "%5d %5d",ADC0avg, ADC1avg);//Left distance sensor
+                n3 = sprintf(str3, "%5d %5d ", ADC2avg, ADC3avg);//Right distance sensor
 
                 SpiEnable();
                 SpiPutBuff(szCursorPosC2, 6);//First counter
@@ -645,7 +693,7 @@ int main(void)
                 SpiDisable();
 
 		INTEnableInterrupts();
-*/
+
                 
                 switch (state)
                 {
@@ -658,40 +706,82 @@ int main(void)
                         {
                             nextstate = ForwardFast;
                         }
-                        else if ( (RZ == 2 && LZ >= 2) || (RZ >= 2 && LZ == 2) )
+                        else if (RZ == 3 && LZ == 2)
                         {
                             nextstate = ForwardMedium;
                         }
-                        else if ( (RZ == 1 && LZ >= 1) || (RZ >= 1 && LZ == 1) )
+                        else if (RZ == 3 && LZ == 1)
                         {
-                            nextstate = ForwardSlow;
+                            nextstate = TurnLeftSmall;
                         }
-                        else if ( RZ == 0 && LZ != 0 )
-                        {
-                            nextstate = TurnRight45;
-                        }
-                        else if ( LZ == 0 && RZ != 0 )
+                        else if (RZ == 3 && LZ == 0)
                         {
                             nextstate = TurnLeft45;
                         }
-                        else if ( LZ == 0 && RZ == 0)
+                        else if (RZ == 2 && LZ == 3)
                         {
-                            nextstate = TurnLeft90;
+                            nextstate = TurnRightSmall;
+                        }
+                        else if (RZ == 2 && LZ == 2)
+                        {
+                            nextstate = TurnRightSmall;
+                        }
+                        else if (RZ == 2 && LZ == 1)
+                        {
+                            nextstate = ForwardSlow;
+                        }
+                        else if (RZ == 2 && LZ == 0)
+                        {
+                            nextstate = TurnLeft45;
+                        }
+                        else if (RZ == 1 && LZ == 3)
+                        {
+                            nextstate = ForwardFast;
+                        }
+                        else if (RZ == 1 && LZ == 2)
+                        {
+                            nextstate = ForwardMedium;
+                        }
+                        else if (RZ == 1 && LZ == 1)
+                        {
+                            nextstate = ForwardSlow;
+                        }
+                        else if (RZ == 1 && LZ == 0)
+                        {
+                            nextstate = TurnLeft45;
+                        }
+                        else if (RZ == 0 && LZ == 3)
+                        {
+                            nextstate = TurnLeftSmall;
+                        }
+                        else if (RZ == 0 && LZ == 2)
+                        {
+                            nextstate = TurnLeftSmall;
+                        }
+                        else if (RZ == 0 && LZ == 1)
+                        {
+                            nextstate = TurnLeftSmall;
+                        }
+                        else if (RZ == 0 && LZ == 0)
+                        {
+                            nextstate = TurnLeft45;
                         }
                         state = MotorChange;
                         break;
                     case MotorChange:
                         if (laststate != nextstate)
                         {
+                            //BaseC3 = 120;
+                            //BaseC2 = 120;
                             if (nextstate == ForwardFast)
                             {
-                                DesiredTimeLeft = 20;
-                                DesiredTimeRight = 20;
+                                DesiredTimeLeft = 100;
+                                DesiredTimeRight = 100;
                             }
                             else if (nextstate == ForwardMedium)
                             {
-                                DesiredTimeLeft = 60;
-                                DesiredTimeRight = 60;
+                                DesiredTimeLeft = 100;
+                                DesiredTimeRight = 100;
                             }
                             else if (nextstate == ForwardSlow)
                             {
@@ -700,18 +790,28 @@ int main(void)
                             }
                             else if (nextstate == TurnRight45)
                             {
-                                DesiredTimeLeft = 90;
+                                DesiredTimeLeft = 80;
                                 DesiredTimeRight = 100;
                             }
                             else if (nextstate == TurnLeft45)
                             {
                                 DesiredTimeLeft = 100;
-                                DesiredTimeRight = 90;
+                                DesiredTimeRight = 80;
                             }
                             else if (nextstate == TurnLeft90)
                             {
-                                DesiredTimeLeft = 0;
-                                DesiredTimeRight = 80;
+                                DesiredTimeLeft = 100;
+                                DesiredTimeRight = 70;
+                            }
+                            else if (nextstate == TurnRightSmall)
+                            {
+                                DesiredTimeLeft = 90;
+                                DesiredTimeRight = 100;
+                            }
+                            else if (nextstate == TurnLeftSmall)
+                            {
+                                DesiredTimeLeft = 100;
+                                DesiredTimeRight = 90;
                             }
                         }
                         laststate = nextstate;
@@ -748,11 +848,11 @@ void DeviceInit() {
 
 	// Configure Timer 2. (PWM)
 	TMR2	= 0;									// clear timer 2 count
-	PR2		= 9999;
+	PR2     = 9999;
 
 	// Configure Timer 3. (Sensors)
 	TMR3	= 0;
-	PR3		= 299;
+	PR3	= 299;
 
 	// Start timers and output compare units.
 	OC2CONSET	= ( 1 << 15 );	// enable output compare module 2
@@ -782,20 +882,20 @@ void DeviceInit() {
         /******** ADC Config *********/
 
         // Configure ADC inputs
-        TRISBSET = (1 << 0) | (1 << 1); //Set JJ-01 (AN0) and JJ-02 (AN1) as digital inputs
-        AD1PCFG = (1 << 0) | (1 << 1); //Set AN0 and AN1 as analog inputs
+        TRISBSET = (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3); //Set JJ-01 (AN0) and JJ-02 (AN1) as digital inputs
+        AD1PCFG = (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3); //Set AN0 and AN1 as analog inputs
                 
         // Configure ADC Control Registers
         AD1CON1SET = (2 << 5)|(1 << 2);
         // ^ Set bits 5-7 which sets the ADC's auto convert
         // ^ Set bit 2 which makes the ADC sample immediately after previous conversion.(Timer 3)
-        AD1CON2SET = (15 << 2);
+        AD1CON2SET = (1 << 10) | (3 << 2);//(15 << 2);
         // ^ Trigger ADC interrupt after every 16th conversion.
         AD1CON3SET = (15 << 0);
         // ^ Since bit 15 is cleared, ADC clock source is PBclock (peripheral bus)
         // Bits 0-7 determine how to scale ADC clock (see pg 13 of ADC chapter).
         AD1CHSSET = 0x0000; //Input Select Register
-        AD1CSSLSET = 0x0003; //Set AN0 and AN1 analog inputs in digital mode
+        AD1CSSLSET = 0x000F; //Set AN0, AN1, AN2 and AN3 analog inputs in digital mode
 
         // Configure ADC interrupt
         IPC6SET =  (1 << 27) | (1 << 26); // ADC Int. Priority = 3, subpri = 0.
@@ -829,6 +929,7 @@ void AppInit() {
     Motors_Forward();
     LastInt2 = 0;
     LastInt3 = 0;
+    
 }
 
 /*
@@ -909,15 +1010,15 @@ float RightSensorFormula(int SensorValue)
 
 void Zone(int RSensor, int LSensor)
 {
-    if (RSensor < 15) // First zone
+    if (RSensor < 5) // First zone
     {
         RZ = 0;
     }
-    else if (RSensor < 40) // Second zone
+    else if (RSensor < 15) // Second zone
     {
         RZ = 1;
     }
-    else if (RSensor < 70) // Third zone
+    else if (RSensor < 40) // Third zone
     {
         RZ = 2;
     }
@@ -930,11 +1031,11 @@ void Zone(int RSensor, int LSensor)
     {
         LZ = 0;
     }
-    else if (LSensor < 40) // Second zone
+    else if (LSensor < 25) // Second zone
     {
         LZ = 1;
     }
-    else if (LSensor < 70) // Third zone
+    else if (LSensor < 40) // Third zone
     {
         LZ = 2;
     }
