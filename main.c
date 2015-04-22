@@ -157,14 +157,14 @@ int Kp = 100, Ki = 50, Kd = 25, Kpslow = 50, Kislow = 25, Kdslow = 12, Kpsupersl
 int LastInt2, LastInt3, Timer5LastInt2, Timer5LastInt3, LastIntCount2=0, LastIntCount3=0;
 
 //ADC variables
-int ADCValue_0[100], ADCValue_1[100], ADCValue_2[100], ADCValue_3[100]; //will store ADC results in these variables
+int ADCValue_0[10], ADCValue_1[10], ADCValue_2[10], ADCValue_3[10]; //will store ADC results in these variables
 int adc_index = 0;
 int adc_counter = 0;
 int ADC0avg, ADC1avg, ADC2avg, ADC3avg, ADC0sum, ADC1sum, ADC2sum, ADC3sum;
 
 // Sensor variables
-int RZ;
-int LZ;
+int RBZ, RFZ;
+int LZ, FZ;
 /* ------------------------------------------------------------ */
 /*				Forward Declarations							*/
 /* ------------------------------------------------------------ */
@@ -176,9 +176,11 @@ void    CheckStoppedWheel2(int delay);
 void    CheckStoppedWheel3(int delay);
 void    ErrorCalcPID2();
 void    ErrorCalcPID3();
-float   LeftSensorFormula(int Sensor);
-float   RightSensorFormula(int Sensor);
-void    Zone(int RSensor, int LSensor);
+float   RightFrontFormula(int Sensor);
+float   RightBackFormula(int Sensor);
+float   FrontFormula(int SensorValue);
+float   LeftFormula(int SensorValue);
+void    Zone(int RBSensor, int RFSensor ,int LSensor, int FSensor);
 /* ------------------------------------------------------------ */
 /*				Interrupt Service Routines						*/
 /* ------------------------------------------------------------ */
@@ -480,7 +482,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
 /* ADC ISR */
 void __ISR(_ADC_VECTOR, ipl3) _ADC_IntHandler(void){
 
-        if (adc_index >= 100)
+        if (adc_index >= 10)
             {  adc_index = 0;}
     	
         ADCValue_0[adc_index] = ADC1BUF0;
@@ -491,12 +493,12 @@ void __ISR(_ADC_VECTOR, ipl3) _ADC_IntHandler(void){
         ADC2sum += ADCValue_2[adc_index];
         ADCValue_3[adc_index] = ADC1BUF3;
         ADC3sum += ADCValue_3[adc_index];
-        if (adc_counter % 100 == 0)
+        if (adc_counter % 10 == 0)
         {
-            ADC0avg = ADC0sum/100;
-            ADC1avg = ADC1sum/100;
-            ADC2avg = ADC2sum/100;
-            ADC3avg = ADC3sum/100;
+            ADC0avg = ADC0sum/10;
+            ADC1avg = ADC1sum/10;
+            ADC2avg = ADC2sum/10;
+            ADC3avg = ADC3sum/10;
             adc_index = 0;
             ADC0sum = 0;
             ADC1sum = 0;
@@ -595,7 +597,7 @@ int main(void)
 {
         char str2[12], str3[12];
         int n2, n3;
-        float LeftSensor, RightSensor;
+        float LeftSensor, RightBackSensor, RightFrontSensor, FrontSensor;
         RobotState state = Start , nextstate, laststate = Start;
         //RobotState state;
 	DeviceInit();
@@ -604,8 +606,6 @@ int main(void)
         INTEnableInterrupts();
         state = Start;
 
-        
-        
         INTDisableInterrupts();
 	//write to PmodCLS
         SpiEnable();
@@ -623,14 +623,18 @@ int main(void)
 	while (fTrue)
 	{
                 INTDisableInterrupts();
-                LeftSensor = LeftSensorFormula(ADC1avg);
-                RightSensor = RightSensorFormula(ADC0avg);
+                RightFrontSensor = RightFrontFormula(ADC0avg);
+                FrontSensor = FrontFormula(ADC1avg);
+                LeftSensor = LeftFormula(ADC2avg);
+                RightBackSensor = RightBackFormula(ADC3avg);
+                
                 INTEnableInterrupts();
                 // Check the Sensors
-                Zone(RightSensor, LeftSensor);
+                Zone(RightBackSensor, RightFrontSensor, LeftSensor, FrontSensor);
 
-                n2 = sprintf(str2, "%5d %5d",ADC0avg, ADC1avg);//Left distance sensor
-                n3 = sprintf(str3, "%5d %5d ", ADC2avg, ADC3avg);//Right distance sensor
+                //INTDisableInterrupts();
+                n2 = sprintf(str2, "%5.2f %5.2f",RightFrontSensor, FrontSensor);//Left distance sensor
+                n3 = sprintf(str3, "%5.2f %5.2f ", LeftSensor, RightBackSensor);//Right distance sensor
 
                 SpiEnable();
                 SpiPutBuff(szCursorPosC2, 6);//First counter
@@ -642,93 +646,52 @@ int main(void)
                 SpiPutBuff(str3, n3);
                 SpiDisable();
 
-		INTEnableInterrupts();
-
+		//INTEnableInterrupts();
+                
                 
                 switch (state)
                 {
                     case Start:
-                        Motors_Stop();
+                        Motors_Forward();
+                        DesiredTimeLeft = 100;
+                        DesiredTimeRight = 100;
                         state = WallCheck;
                         break;
                     case WallCheck:
-                        if (RZ == 3 && LZ == 3)
+                        //Check if there is a wall in front
+                        if (FZ == 1)
                         {
-                            nextstate = ForwardFast;
+                            Motors_Stop();
                         }
-                        else if (RZ == 3 && LZ == 2)
+                        //Check if there is a wall in both right sensors
+                        else if (RightFrontSensor < 10 && RightBackSensor < 10)
                         {
-                            nextstate = ForwardMedium;
+                            //Check if the robot is aligned
+                            if ((RightFrontSensor > RightBackSensor) && (RightFrontSensor - RightBackSensor) < 3)
+                            {
+                                nextstate = TurnRightSmall;
+                            }
+                            else if ((RightBackSensor > RightFrontSensor) && (RightBackSensor - RightFrontSensor) < 3)
+                            {
+                                nextstate = TurnLeftSmall;
+                            }
+                            else
+                            {
+                                nextstate = ForwardSlow;
+                            }
+                            
                         }
-                        else if (RZ == 3 && LZ == 1)
-                        {
-                            nextstate = TurnLeftSmall;
-                        }
-                        else if (RZ == 3 && LZ == 0)
-                        {
-                            nextstate = TurnLeft45;
-                        }
-                        else if (RZ == 2 && LZ == 3)
-                        {
-                            nextstate = TurnRightSmall;
-                        }
-                        else if (RZ == 2 && LZ == 2)
-                        {
-                            nextstate = TurnRightSmall;
-                        }
-                        else if (RZ == 2 && LZ == 1)
-                        {
-                            nextstate = ForwardSlow;
-                        }
-                        else if (RZ == 2 && LZ == 0)
-                        {
-                            nextstate = TurnLeft45;
-                        }
-                        else if (RZ == 1 && LZ == 3)
-                        {
-                            nextstate = ForwardFast;
-                        }
-                        else if (RZ == 1 && LZ == 2)
-                        {
-                            nextstate = ForwardMedium;
-                        }
-                        else if (RZ == 1 && LZ == 1)
+                        else
                         {
                             nextstate = ForwardSlow;
                         }
-                        else if (RZ == 1 && LZ == 0)
-                        {
-                            nextstate = TurnLeft45;
-                        }
-                        else if (RZ == 0 && LZ == 3)
-                        {
-                            nextstate = TurnLeftSmall;
-                        }
-                        else if (RZ == 0 && LZ == 2)
-                        {
-                            nextstate = TurnLeftSmall;
-                        }
-                        else if (RZ == 0 && LZ == 1)
-                        {
-                            nextstate = TurnLeftSmall;
-                        }
-                        else if (RZ == 0 && LZ == 0)
-                        {
-                            nextstate = TurnLeft45;
-                        }
+                        
                         state = MotorChange;
                         break;
                     case MotorChange:
                         if (laststate != nextstate)
                         {
-                            //BaseC3 = 120;
-                            //BaseC2 = 120;
                             if (nextstate == ForwardFast)
-                            {
-                                DesiredTimeLeft = 100;
-                                DesiredTimeRight = 100;
-                            }
-                            else if (nextstate == ForwardMedium)
                             {
                                 DesiredTimeLeft = 100;
                                 DesiredTimeRight = 100;
@@ -947,28 +910,40 @@ void ErrorCalcPID3() {
  */
 
 /* Returns the distance from the left sensor */
-float LeftSensorFormula(int SensorValue)
+float LeftFormula(int SensorValue)
 {
-    return (float)(7525.3*pow(SensorValue,-1.157));
+    return (float)(20303*pow(SensorValue,-1.337));
 }
 
 /* Returns the distance from the right sensor*/
-float RightSensorFormula(int SensorValue)
+float FrontFormula(int SensorValue)
 {
-    return (float)(46.5511*exp(-0.0044*SensorValue));
+    return (float)(6166.8*pow(SensorValue,-1.125));
 }
 
-void Zone(int RSensor, int LSensor)
+/* Returns the distance from the right sensor*/
+float RightBackFormula(int SensorValue)
 {
-    if (RSensor < 5) // First zone
+    return (float)(5888.8*pow(SensorValue,-1.119));
+}
+
+/* Returns the distance from the right sensor*/
+float RightFrontFormula(int SensorValue)
+{
+    return (float)(4214.3*pow(SensorValue,-1.068));
+}
+
+void Zone(int RBSensor, int RFSensor ,int LSensor, int FSensor)
+{
+  /*  if (RBSensor < 5) // First zone
     {
         RZ = 0;
     }
-    else if (RSensor < 15) // Second zone
+    else if (RBSensor < 15) // Second zone
     {
         RZ = 1;
     }
-    else if (RSensor < 40) // Third zone
+    else if (RBSensor < 40) // Third zone
     {
         RZ = 2;
     }
@@ -977,15 +952,15 @@ void Zone(int RSensor, int LSensor)
         RZ = 3;
     }
 
-    if (LSensor < 15) // First zone
+    if (RFSensor < 15) // First zone
     {
         LZ = 0;
     }
-    else if (LSensor < 25) // Second zone
+    else if (RFSensor < 25) // Second zone
     {
         LZ = 1;
     }
-    else if (LSensor < 40) // Third zone
+    else if (RFSensor < 40) // Third zone
     {
         LZ = 2;
     }
@@ -993,4 +968,23 @@ void Zone(int RSensor, int LSensor)
     {
         LZ = 3;
     }
+*/
+    if (LSensor < 10)
+    {
+        LZ = 1;
+    }
+    else
+    {
+        LZ = 0;
+    }
+
+    if (FSensor < 6)
+    {
+        FZ = 1;
+    }
+    else
+    {
+        FZ = 0;
+    }
+    
 }
