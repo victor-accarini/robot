@@ -157,7 +157,7 @@ int Kp = 100, Ki = 50, Kd = 25, Kpslow = 50, Kislow = 25, Kdslow = 12, Kpsupersl
 int LastInt2, LastInt3, Timer5LastInt2, Timer5LastInt3, LastIntCount2=0, LastIntCount3=0;
 
 //ADC variables
-int ADCValue_0[25], ADCValue_1[25], ADCValue_2[25], ADCValue_3[25]; //will store ADC results in these variables
+int ADCValue_0[100], ADCValue_1[100], ADCValue_2[100], ADCValue_3[100]; //will store ADC results in these variables
 int adc_index = 0;
 int adc_counter = 0;
 int ADC0avg, ADC1avg, ADC2avg, ADC3avg, ADC0sum, ADC1sum, ADC2sum, ADC3sum;
@@ -480,59 +480,9 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
 /* ADC ISR */
 void __ISR(_ADC_VECTOR, ipl3) _ADC_IntHandler(void){
 
-        if (adc_index >= 10)
+        if (adc_index >= 100)
             {  adc_index = 0;}
-    	/*
-        //if (AD1CHS == 0x00) //Right Front
-        //{
-            ADCValue_0[adc_index] = ADC1BUF0;
-            ADC0sum += ADCValue_0[adc_index];
-            if (adc_counter % 10 == 0)
-            {
-                ADC0avg = ADC0sum/10;
-                ADC0sum = 0;
-                //Set the next channel to be sampled
-                //AD1CHSCLR = (7 << 16);
-                //AD1CHSSET = (1 << 16);
-            }
-            
-        //}
-        //else if (AD1CHS == 0x01) //Front
-        //{
-            ADCValue_1[adc_index] = ADC1BUF1;
-            ADC1sum += ADCValue_1[adc_index];
-            if (adc_counter % 10 == 0)
-            {
-                ADC1avg = ADC1sum/10;
-                ADC1sum = 0;
-                //AD1CHSCLR = (7 << 16);
-                //AD1CHSSET = (1 << 17);
-            }
-        //}
-        //else if (AD1CHS == 0x02) //Right Back
-        //{
-            ADCValue_2[adc_index] = ADC1BUF2;
-            ADC2sum += ADCValue_2[adc_index];
-            if (adc_counter % 10 == 0)
-            {
-                ADC2avg = ADC2sum/10;
-                ADC2sum = 0;
-                //AD1CHSCLR = (7 << 16);
-                //AD1CHSSET = (3 << 16);
-            }
-        //}
-        //else //if (AD1CHS == 0x03) //Left
-        //{
-            ADCValue_3[adc_index] = ADC1BUF3;
-            ADC3sum += ADCValue_3[adc_index];
-            if (adc_counter % 10 == 0)
-            {
-                ADC3avg = ADC3sum/10;
-                ADC3sum = 0;
-                //AD1CHSCLR = (7 << 16);
-            }
-        //}*/
-
+    	
         ADCValue_0[adc_index] = ADC1BUF0;
         ADC0sum += ADCValue_0[adc_index];
         ADCValue_1[adc_index] = ADC1BUF1;
@@ -541,12 +491,12 @@ void __ISR(_ADC_VECTOR, ipl3) _ADC_IntHandler(void){
         ADC2sum += ADCValue_2[adc_index];
         ADCValue_3[adc_index] = ADC1BUF3;
         ADC3sum += ADCValue_3[adc_index];
-        if (adc_counter % 10 == 0)
+        if (adc_counter % 100 == 0)
         {
-            ADC0avg = ADC0sum/10;
-            ADC1avg = ADC1sum/10;
-            ADC2avg = ADC2sum/10;
-            ADC3avg = ADC3sum/10;
+            ADC0avg = ADC0sum/100;
+            ADC1avg = ADC1sum/100;
+            ADC2avg = ADC2sum/100;
+            ADC3avg = ADC3sum/100;
             adc_index = 0;
             ADC0sum = 0;
             ADC1sum = 0;
@@ -852,7 +802,7 @@ void DeviceInit() {
 
 	// Configure Timer 3. (Sensors)
 	TMR3	= 0;
-	PR3	= 299;
+	PR3	= 4999;
 
 	// Start timers and output compare units.
 	OC2CONSET	= ( 1 << 15 );	// enable output compare module 2
