@@ -565,7 +565,7 @@ int main(void)
                 RightBackSensor = RightBackFormula(ADC3avg);
                 INTEnableInterrupts();
 
-                //INTDisableInterrupts();
+                /*//INTDisableInterrupts();
                 n2 = sprintf(str2, "%5.2f %5.2f",RightFrontSensor, FrontSensor);//Left distance sensor
                 n3 = sprintf(str3, "%5.2f %5.2f ", LeftSensor, RightBackSensor);//Right distance sensor
 
@@ -580,7 +580,7 @@ int main(void)
                 SpiDisable();
 
 		//INTEnableInterrupts();
-                
+                //*/
                 switch (state)
                 {
                     case Start:
@@ -595,11 +595,11 @@ int main(void)
                         {
                             if (RightFrontSensor < 10 && RightBackSensor < 10)
                             {
-                                if ( (RightFrontSensor > RightBackSensor) && (RightFrontSensor-RightBackSensor > 2) )
+                                if ( (RightFrontSensor > RightBackSensor) && (RightFrontSensor-RightBackSensor > 0.5) )
                                 {
                                     nextstate = TurnRightSmall;
                                 }
-                                else if ( (RightBackSensor > RightFrontSensor) && (RightBackSensor-RightFrontSensor > 2) )
+                                else if ( (RightBackSensor > RightFrontSensor) && (RightBackSensor-RightFrontSensor > 0.3) )
                                 {
                                     nextstate = TurnLeftSmall;
                                 }
@@ -618,34 +618,44 @@ int main(void)
                     case MotorChange:
                         if (laststate != nextstate)
                         {
+                            SpiEnable();
+                            SpiPutBuff(szCursorPosC2, 6);//First counter
                             if (nextstate == Stopped)
                             {
+                                n2 = sprintf(str2, "Stopped      ");
                                 Motors_Stop();
                             }
                             else if (nextstate == ForwardSlow)
                             {
+                                n2 = sprintf(str2, "Forward Slow ");
                                 Motors_Forward();
                                 DesiredTimeLeft = 90;
                                 DesiredTimeRight = 100;
                             }
                             else if (nextstate == TurnLeftSmall)
                             {
+                                n2 = sprintf(str2, "Small Left   ");
                                 Motors_Forward();
                                 DesiredTimeLeft = 100;
                                 DesiredTimeRight = 80;
                             }
                             else if (nextstate == TurnRightSmall)
                             {
+                                n2 = sprintf(str2, "Small Right  ");
                                 Motors_Forward();
                                 DesiredTimeLeft = 80;
                                 DesiredTimeRight = 100;
                             }
                             else if (nextstate == TurnRight45)
                             {
+                                n2 = sprintf(str2, "45 Right     ");
                                 Motors_Forward();
                                 DesiredTimeLeft = 50;
                                 DesiredTimeRight = 100;
                             }
+                            SpiPutBuff(str2, n2);
+                            DelayMs(4);
+                            SpiDisable();
                         }
                         laststate == nextstate;
                         state = WallCheck;
