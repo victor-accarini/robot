@@ -142,7 +142,7 @@ volatile	struct btn	PmodSwt4;
 
 // State Machine
 typedef enum RobotState {Start, WallCheck, ForwardFast, ForwardMedium, ForwardSlow, TurnLeft45,
-        TurnLeft90, TurnRight45, TurnRightSmall, TurnLeftSmall, MotorChange} RobotState;
+        TurnLeft90, TurnRight45, TurnRightSmall, TurnLeftSmall, MotorChange, Stopped} RobotState;
 //Motors interrupts variables
 int TimerCounter, IC2Counter, IC3Counter, BaseC2, BaseC3, C2, C3, C2Counter = 0, C3Counter = 0;
 int TimesC2[10], TimesC3[10];
@@ -581,26 +581,77 @@ int main(void)
 
 		//INTEnableInterrupts();
                 
-                if (FrontSensor < 6)
+                switch (state)
                 {
-                    Motors_Backward();
-                    DesiredTimeLeft = 95;
-                    DesiredTimeRight = 100;
+                    case Start:
+                        state = WallCheck;
+                        break;
+                    case WallCheck:
+                        if (FrontSensor < 4)
+                        {
+                            nextstate = Stopped;
+                        }
+                        else
+                        {
+                            if (RightFrontSensor < 10 && RightBackSensor < 10)
+                            {
+                                if ( (RightFrontSensor > RightBackSensor) && (RightFrontSensor-RightBackSensor > 2) )
+                                {
+                                    nextstate = TurnRightSmall;
+                                }
+                                else if ( (RightBackSensor > RightFrontSensor) && (RightBackSensor-RightFrontSensor > 2) )
+                                {
+                                    nextstate = TurnLeftSmall;
+                                }
+                                else
+                                {
+                                    nextstate = ForwardSlow;
+                                }
+                            }
+                            else
+                            {
+                                nextstate = TurnRight45;
+                            }
+                        }
+                        state = MotorChange;
+                        break;
+                    case MotorChange:
+                        if (laststate != nextstate)
+                        {
+                            if (nextstate == Stopped)
+                            {
+                                Motors_Stop();
+                            }
+                            else if (nextstate == ForwardSlow)
+                            {
+                                Motors_Forward();
+                                DesiredTimeLeft = 90;
+                                DesiredTimeRight = 100;
+                            }
+                            else if (nextstate == TurnLeftSmall)
+                            {
+                                Motors_Forward();
+                                DesiredTimeLeft = 100;
+                                DesiredTimeRight = 80;
+                            }
+                            else if (nextstate == TurnRightSmall)
+                            {
+                                Motors_Forward();
+                                DesiredTimeLeft = 80;
+                                DesiredTimeRight = 100;
+                            }
+                            else if (nextstate == TurnRight45)
+                            {
+                                Motors_Forward();
+                                DesiredTimeLeft = 50;
+                                DesiredTimeRight = 100;
+                            }
+                        }
+                        laststate == nextstate;
+                        state = WallCheck;
+                        break;
                 }
-                else if ((FrontSensor >= 6) && (FrontSensor < 13))
-                {
-                    Motors_Stop();
-                    //error2 = 0.0;
-                    //error3 = 0.0;
-                    //sumerror2 = 0.0;
-                    //sumerror3 = 0.0;
-                }
-                else
-                {
-                    Motors_Forward();
-                    DesiredTimeLeft = 100;
-                    DesiredTimeRight = 90;
-                }//*/
+                //*/
                 
                 
 	}  //end while
