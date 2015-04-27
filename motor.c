@@ -36,7 +36,7 @@ void Motor_Right_Backward()
 }
 void Motors_Backward()
 {
-    Motors_Stop();
+    //Motors_Stop();
     trisMtrLeftDirClr	= ( 1 << bnMtrLeftDir );
     prtMtrLeftDirClr	= ( 1 << bnMtrLeftDir );	// backward
     trisMtrRightDirClr	= ( 1 << bnMtrRightDir );
@@ -57,7 +57,7 @@ void Motor_Right_Forward()
 }
 void Motors_Forward()
 {
-    Motors_Stop();
+    //Motors_Stop();
     trisMtrLeftDirClr	= ( 1 << bnMtrLeftDir );
     prtMtrLeftDirSet	= ( 1 << bnMtrLeftDir );	// forward
     trisMtrRightDirClr	= ( 1 << bnMtrRightDir );

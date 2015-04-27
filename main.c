@@ -150,7 +150,7 @@ int TimesC2[10], TimesC3[10];
 float error2, error3, lasterror2, lasterror3, sumerror2, sumerror3, interror2 = 0, interror3 = 0, temp2, temp3;
 float error2v[1000], error3v[1000];
 int errorcount2 = 0, errorcount3 = 0;
-int Kp = 100, Ki = 50, Kd = 25, Kpslow = 50, Kislow = 25, Kdslow = 12, Kpsuperslow = 18, Kisuperslow = 10, Kdsuperslow = 5;
+int Kp = 100, Ki = 50, Kd = 25, Kpslow = 50, Kislow = 25, Kdslow = 12, Kpsuperslow = 20, Kisuperslow = 10, Kdsuperslow = 5;
 //Desired times between interrupts
 //int DesiredTime2, DesiredTime3;
 //Stopped motors check variables
@@ -205,11 +205,33 @@ void    Zone(int RBSensor, int RFSensor ,int LSensor, int FSensor);
 
 void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
 {
+        ///*
+        if (DesiredTimeRight >= 20 && DesiredTimeRight <= 110)
+        {
+            if (LastInt3 > 500)
+            {
+                OC3R = 9999;
+                OC3RS = 9999;
+                LastInt3 = 0;
+            }
+            LastInt3++;
+        }
+        if (DesiredTimeLeft >= 20 && DesiredTimeLeft <= 110)
+        {
+            if (LastInt2 > 500)
+            {
+                OC2R = 9999;
+                OC2RS = 9999;
+                LastInt2 = 0;
+            }
+            LastInt2++;
+        }
+        //*/
         // PID for Right Wheel
         if (DesiredTimeRight < 20 || DesiredTimeRight > 110){
             error3 = 0;
             lasterror3 = 0;
-            errorcount3 = 0;
+            //errorcount3 = 0;
             sumerror3 = 0;
             temp3 = 0;
             OC3R = temp3;
@@ -222,20 +244,6 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
         {
             if (C3Counter++ > 299)
             {
-                //Check if wheel is stopped
-                /*if (Timer5LastInt3 == LastInt3)
-                {
-                    if (LastIntCount3 < 10)
-                    {
-                        LastIntCount3++;
-                    }
-                    else
-                    {
-                        BaseC3 = 120;
-                    }
-                } else {
-                    LastIntCount3 = 0;
-                }*/
                 //Calculate Error
                 ErrorCalcPID3();
                 // Calculate new speed
@@ -254,7 +262,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                 OC3RS	= temp3;
                 C3Counter = 0;
                 errorcount3++;
-                if (errorcount3 > 299)
+                if (errorcount3 > 1000)
                     errorcount3 = 0;
                }
         }
@@ -262,20 +270,6 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
         {
             if (C3Counter++ > 99)
             {
-                //Check if wheel is stopped
-                /*if (Timer5LastInt3 == LastInt3)
-                {
-                    if (LastIntCount3 < 25)
-                    {
-                        LastIntCount3++;
-                    }
-                    else
-                    {
-                        BaseC3 = 120;
-                    }
-                } else {
-                    LastIntCount3 = 0;
-                }*/
                 //Calculate Error
                 ErrorCalcPID3();
                 // Calculate new speed
@@ -294,28 +288,14 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                 OC3RS	= temp3;
                 C3Counter = 0;
                 errorcount3++;
-                if (errorcount3 > 299)
+                if (errorcount3 > 1000)
                     errorcount3 = 0;
                 }
         }
         else //110 is the max
         {
-            if (C3Counter++ > 99)
+            if (C3Counter++ > 299)
             {
-                //Check if wheel is stopped
-                /*if (Timer5LastInt3 == LastInt3)
-                {
-                    if (LastIntCount3 < 25)
-                    {
-                        LastIntCount3++;
-                    }
-                    else
-                    {
-                        BaseC3 = 120;
-                    }
-                } else {
-                    LastIntCount3 = 0;
-                }*/
                 //Calculate Error
                 ErrorCalcPID3();
                 // Calculate new speed
@@ -334,7 +314,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                 OC3RS	= temp3;
                 C3Counter = 0;
                 errorcount3++;
-                if (errorcount3 > 299)
+                if (errorcount3 > 1000)
                     errorcount3 = 0;
                 }
         }
@@ -343,7 +323,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
         if (DesiredTimeLeft < 20 || DesiredTimeLeft > 110){
             error2 = 0;
             lasterror2 = 0;
-            errorcount2 = 0;
+            //errorcount2 = 0;
             sumerror2 = 0;
             temp2 = 0;
             OC2R = temp2;
@@ -356,20 +336,6 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
         {
             if (C2Counter++ > 299)
             {
-                //Check if wheel is stopped
-                /*if (Timer5LastInt2 == LastInt2)
-                {
-                    if (LastIntCount2 < 50)
-                    {
-                        LastIntCount2++;
-                    }
-                    else
-                    {
-                        BaseC2 = 120;
-                    }
-                } else {
-                    LastIntCount2 = 0;
-                }*/
                 //Calculate Error
                 ErrorCalcPID2();
                 // Calculate new speed
@@ -388,7 +354,7 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                 OC2RS	= temp2;
                 C2Counter = 0;
                 errorcount2++;
-                if (errorcount2 > 299)
+                if (errorcount2 > 1000)
                     errorcount2 = 0;
             }
         }
@@ -396,20 +362,6 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
         {
             if (C2Counter++ > 99)
             {
-                //Check if wheel is stopped
-                /*if (Timer5LastInt2 == LastInt2)
-                {
-                    if (LastIntCount2 < 25)
-                    {
-                        LastIntCount2++;
-                    }
-                    else
-                    {
-                        BaseC2 = 120;
-                    }
-                } else {
-                    LastIntCount2 = 0;
-                }*/
                 //Calculate Error
                 ErrorCalcPID2();
                 // Calculate new speed
@@ -428,28 +380,14 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                 OC2RS	= temp2;
                 C2Counter = 0;
                 errorcount2++;
-                if (errorcount2 > 299)
+                if (errorcount2 > 1000)
                     errorcount2 = 0;
                 }
         }
         else //110 is the max
         {
-            if (C2Counter++ > 99)
+            if (C2Counter++ > 299)
             {
-                //Check if wheel is stopped
-                /*if (Timer5LastInt2 == LastInt2)
-                {
-                    if (LastIntCount2 < 25)
-                    {
-                        LastIntCount2++;
-                    }
-                    else
-                    {
-                        BaseC2 = 120;
-                    }
-                } else {
-                    LastIntCount2 = 0;
-                }*/
                 //Calculate Error
                 ErrorCalcPID2();
                 // Calculate new speed
@@ -468,13 +406,11 @@ void __ISR(_TIMER_5_VECTOR, ipl7) Timer5Handler(void)
                 OC2RS	= temp2;
                 C2Counter = 0;
                 errorcount2++;
-                if (errorcount2 > 299)
+                if (errorcount2 > 1000)
                     errorcount2 = 0;
                 }
         }
-        
-        Timer5LastInt2 = LastInt2;
-        Timer5LastInt3 = LastInt3;
+       
         TimerCounter++;
         mT5ClearIntFlag();
 }
@@ -535,7 +471,7 @@ void __ISR(_INPUT_CAPTURE_2_VECTOR, ipl7) _IC2_IntHandler(void)
         INTDisableInterrupts();
         BaseC2 = TimerCounter - C2;
         C2 = TimerCounter;
-        LastInt2 = TimerCounter;
+        LastInt2 = 0;
         INTEnableInterrupts();
         
         buf = IC2BUF;           // Read the buffer to clear space
@@ -564,7 +500,7 @@ void __ISR(_INPUT_CAPTURE_3_VECTOR, ipl7) _IC3_IntHandler(void)
         INTDisableInterrupts();
         BaseC3 = TimerCounter - C3;
         C3 = TimerCounter;
-        LastInt3 = TimerCounter;
+        LastInt3 = 0;
         INTEnableInterrupts();
 
         buf = IC3BUF;
@@ -627,10 +563,7 @@ int main(void)
                 FrontSensor = FrontFormula(ADC1avg);
                 LeftSensor = LeftFormula(ADC2avg);
                 RightBackSensor = RightBackFormula(ADC3avg);
-                
                 INTEnableInterrupts();
-                // Check the Sensors
-                Zone(RightBackSensor, RightFrontSensor, LeftSensor, FrontSensor);
 
                 //INTDisableInterrupts();
                 n2 = sprintf(str2, "%5.2f %5.2f",RightFrontSensor, FrontSensor);//Left distance sensor
@@ -648,89 +581,27 @@ int main(void)
 
 		//INTEnableInterrupts();
                 
-                
-                switch (state)
+                if (FrontSensor < 6)
                 {
-                    case Start:
-                        Motors_Forward();
-                        DesiredTimeLeft = 100;
-                        DesiredTimeRight = 100;
-                        state = WallCheck;
-                        break;
-                    case WallCheck:
-                        //Check if there is a wall in front
-                        if (FZ == 1)
-                        {
-                            Motors_Stop();
-                        }
-                        //Check if there is a wall in both right sensors
-                        else if (RightFrontSensor < 10 && RightBackSensor < 10)
-                        {
-                            //Check if the robot is aligned
-                            if ((RightFrontSensor > RightBackSensor) && (RightFrontSensor - RightBackSensor) < 3)
-                            {
-                                nextstate = TurnRightSmall;
-                            }
-                            else if ((RightBackSensor > RightFrontSensor) && (RightBackSensor - RightFrontSensor) < 3)
-                            {
-                                nextstate = TurnLeftSmall;
-                            }
-                            else
-                            {
-                                nextstate = ForwardSlow;
-                            }
-                            
-                        }
-                        else
-                        {
-                            nextstate = ForwardSlow;
-                        }
-                        
-                        state = MotorChange;
-                        break;
-                    case MotorChange:
-                        if (laststate != nextstate)
-                        {
-                            if (nextstate == ForwardFast)
-                            {
-                                DesiredTimeLeft = 100;
-                                DesiredTimeRight = 100;
-                            }
-                            else if (nextstate == ForwardSlow)
-                            {
-                                DesiredTimeLeft = 100;
-                                DesiredTimeRight = 100;
-                            }
-                            else if (nextstate == TurnRight45)
-                            {
-                                DesiredTimeLeft = 80;
-                                DesiredTimeRight = 100;
-                            }
-                            else if (nextstate == TurnLeft45)
-                            {
-                                DesiredTimeLeft = 100;
-                                DesiredTimeRight = 80;
-                            }
-                            else if (nextstate == TurnLeft90)
-                            {
-                                DesiredTimeLeft = 100;
-                                DesiredTimeRight = 70;
-                            }
-                            else if (nextstate == TurnRightSmall)
-                            {
-                                DesiredTimeLeft = 90;
-                                DesiredTimeRight = 100;
-                            }
-                            else if (nextstate == TurnLeftSmall)
-                            {
-                                DesiredTimeLeft = 100;
-                                DesiredTimeRight = 90;
-                            }
-                        }
-                        laststate = nextstate;
-                        state = WallCheck;
-                        break;
+                    Motors_Backward();
+                    DesiredTimeLeft = 95;
+                    DesiredTimeRight = 100;
                 }
+                else if ((FrontSensor >= 6) && (FrontSensor < 13))
+                {
+                    Motors_Stop();
+                    //error2 = 0.0;
+                    //error3 = 0.0;
+                    //sumerror2 = 0.0;
+                    //sumerror3 = 0.0;
+                }
+                else
+                {
+                    Motors_Forward();
+                    DesiredTimeLeft = 100;
+                    DesiredTimeRight = 90;
+                }//*/
+                
                 
 	}  //end while
 }  //end main
@@ -849,29 +720,19 @@ void AppInit() {
  *  PID Functions
  */
 
-void CheckStoppedWheelLeft(int delay) {
-    /*if (LastIntCount2 > 10){
-        MtrCtrlFwd();
-        //OC2R = 9999;
-        //OC2RS = 9999;
-        BaseC2 = 50;
-    }//*/
-}
-
-void CheckStoppedWheelRight(int delay) {
-    /*if (LastIntCount3 > 10){
-        MtrCtrlFwd();
-        //OC3R = 9999;
-        //OC3RS = 9999;
-        BaseC3 = 50;
-    }//*/
-}
-
 void ErrorCalcPID2() {
     // Set previous error
     lasterror2 = error2;
     // Calculate Error
     error2 = BaseC2 - DesiredTimeLeft;
+    if (error2 > 200)
+    {
+        error2 = 200;
+    }
+    else if (error2 < -200)
+    {
+        error2 = -200;
+    }
     error2v[errorcount2] = error2;
     // Calculate Integral part
     sumerror2 += (float)Kisuperslow*error2;
@@ -891,7 +752,16 @@ void ErrorCalcPID3() {
     lasterror3 = error3;
     // Calculate Error
     error3 = BaseC3 - DesiredTimeRight;
+    if (error3 > 200)
+    {
+        error3 = 200;
+    }
+    else if (error3 < -200)
+    {
+        error3 = -200;
+    }
     error3v[errorcount3] = error3;
+
     // Calculate Integral part
     sumerror3 += (float)Kisuperslow*error3;
     // Bound sumerror value

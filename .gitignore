@@ -9,7 +9,8 @@
 # Temporary files
 *~
 *.swp
-
+*.csv
+*.csv#
 # Compiled Files
 *.pyc
 
