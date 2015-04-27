@@ -587,9 +587,17 @@ int main(void)
                         state = WallCheck;
                         break;
                     case WallCheck:
-                        if (FrontSensor < 4)
+                        if (FrontSensor < 6 && LeftSensor < 8 && RightFrontSensor < 8)
                         {
                             nextstate = Stopped;
+                        }
+                        else if (FrontSensor < 6 && RightFrontSensor >= 8)
+                        {
+                            nextstate = TurnRight45;
+                        }
+                        else if (FrontSensor < 6 && RightFrontSensor < 8 && LeftSensor >= 8)
+                        {
+                            nextstate = TurnLeft90;
                         }
                         else
                         {
@@ -652,6 +660,13 @@ int main(void)
                                 Motors_Forward();
                                 DesiredTimeLeft = 50;
                                 DesiredTimeRight = 100;
+                            }
+                            else if (nextstate == TurnLeft90)
+                            {
+                                n2 = sprintf(str2, "90 Left      ");
+                                Motors_Forward();
+                                DesiredTimeLeft = 100;
+                                DesiredTimeRight = 50;
                             }
                             SpiPutBuff(str2, n2);
                             DelayMs(4);
