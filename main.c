@@ -567,13 +567,13 @@ int main(void)
 
                 /*//INTDisableInterrupts();
                 n2 = sprintf(str2, "%5.2f %5.2f",RightFrontSensor, FrontSensor);//Left distance sensor
-                n3 = sprintf(str3, "%5.2f %5.2f ", LeftSensor, RightBackSensor);//Right distance sensor
+                */n3 = sprintf(str3, "%5.2f %5.2f ", LeftSensor, LeftSensor);//Right distance sensor
 
                 SpiEnable();
-                SpiPutBuff(szCursorPosC2, 6);//First counter
+                /*SpiPutBuff(szCursorPosC2, 6);//First counter
                 DelayMs(4);
                 SpiPutBuff(str2, n2);
-                DelayMs(4);
+                DelayMs(4);*/
                 SpiPutBuff(szCursorPosC3, 6);//First counter
                 DelayMs(4);
                 SpiPutBuff(str3, n3);
@@ -587,27 +587,27 @@ int main(void)
                         state = WallCheck;
                         break;
                     case WallCheck:
-                        if (FrontSensor < 6 && LeftSensor < 8 && RightFrontSensor < 8)
+                        if (FrontSensor < 6 && LeftSensor < 9 && RightFrontSensor < 9)
                         {
                             nextstate = Stopped;
                         }
-                        else if (FrontSensor < 6 && RightFrontSensor >= 8)
+                        else if (FrontSensor < 6 && RightFrontSensor >= 9)
                         {
                             nextstate = TurnRight45;
                         }
-                        else if (FrontSensor < 6 && RightFrontSensor < 8 && LeftSensor >= 8)
+                        else if (FrontSensor < 6 && RightFrontSensor < 9 && LeftSensor >= 6)
                         {
                             nextstate = TurnLeft90;
                         }
                         else
                         {
-                            if (RightFrontSensor < 10 && RightBackSensor < 10)
+                            if (RightFrontSensor < 9 && RightBackSensor < 9)
                             {
                                 if ( (RightFrontSensor > RightBackSensor) && (RightFrontSensor-RightBackSensor > 0.5) )
                                 {
                                     nextstate = TurnRightSmall;
                                 }
-                                else if ( (RightBackSensor > RightFrontSensor) && (RightBackSensor-RightFrontSensor > 0.3) )
+                                else if ( (RightBackSensor > RightFrontSensor) && (RightBackSensor-RightFrontSensor > 0.15) )
                                 {
                                     nextstate = TurnLeftSmall;
                                 }
@@ -637,7 +637,7 @@ int main(void)
                             {
                                 n2 = sprintf(str2, "Forward Slow ");
                                 Motors_Forward();
-                                DesiredTimeLeft = 90;
+                                DesiredTimeLeft = 95;
                                 DesiredTimeRight = 100;
                             }
                             else if (nextstate == TurnLeftSmall)
@@ -664,8 +664,9 @@ int main(void)
                             else if (nextstate == TurnLeft90)
                             {
                                 n2 = sprintf(str2, "90 Left      ");
-                                Motors_Forward();
-                                DesiredTimeLeft = 100;
+                                Motor_Right_Forward();
+                                Motor_Left_Backward();
+                                DesiredTimeLeft = 90;
                                 DesiredTimeRight = 50;
                             }
                             SpiPutBuff(str2, n2);
@@ -858,7 +859,8 @@ void ErrorCalcPID3() {
 /* Returns the distance from the left sensor */
 float LeftFormula(int SensorValue)
 {
-    return (float)(20303*pow(SensorValue,-1.337));
+    //20303
+    return (float)(6000*pow(SensorValue,-1.121));
 }
 
 /* Returns the distance from the right sensor*/
